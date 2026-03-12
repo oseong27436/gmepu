@@ -5,10 +5,17 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+export interface UserProfile {
+  id: string;
+  nickname: string;
+  created_at: string;
+}
+
 export interface GmepuMemo {
   id: string;
   text: string;
   nickname: string;
+  user_id: string | null;
   color: string;
   lat: number;
   lng: number;
@@ -19,7 +26,7 @@ export interface GmepuMemo {
 export interface GmepuReaction {
   id: string;
   memo_id: string;
-  fingerprint: string;
+  user_id: string;
   emoji: string;
   created_at: string;
 }
@@ -29,7 +36,7 @@ export interface GmepuReply {
   memo_id: string;
   text: string;
   nickname: string;
-  fingerprint: string;
+  user_id: string;
   created_at: string;
 }
 

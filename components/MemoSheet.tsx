@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { MEMO_COLORS } from "./MemoPin";
 import { supabase, REACTION_EMOJIS, type GmepuMemo, type GmepuReply } from "@/lib/supabase";
-import { getNicknameEmoji } from "@/lib/nickname";
 
 interface MemoSheetProps {
   onSubmit: (text: string, color: string) => void;
@@ -82,37 +81,37 @@ export function AddMemoSheet({ onSubmit, onClose }: MemoSheetProps) {
 
 interface MemoDetailProps {
   memo: GmepuMemo;
-  fingerprint: string;
+  userId: string | null;
+  userNickname: string | null;
   onClose: () => void;
   timeAgo: string;
+  onLoginRequired: () => void;
 }
 
-export function MemoDetailSheet({ memo, fingerprint, onClose, timeAgo }: MemoDetailProps) {
+export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, onLoginRequired }: MemoDetailProps) {
   const [reactions, setReactions] = useState<Record<string, number>>({});
   const [myReactions, setMyReactions] = useState<Set<string>>(new Set());
   const [replies, setReplies] = useState<GmepuReply[]>([]);
   const [replyText, setReplyText] = useState("");
 
   useEffect(() => {
-    // 반응 로드
     const loadReactions = async () => {
       const { data } = await supabase
         .from("gmepu_reactions")
-        .select("emoji, fingerprint")
+        .select("emoji, user_id")
         .eq("memo_id", memo.id);
       if (!data) return;
 
       const counts: Record<string, number> = {};
       const mine = new Set<string>();
-      data.forEach(({ emoji, fingerprint: fp }) => {
+      data.forEach(({ emoji, user_id }: { emoji: string; user_id: string }) => {
         counts[emoji] = (counts[emoji] ?? 0) + 1;
-        if (fp === fingerprint) mine.add(emoji);
+        if (userId && user_id === userId) mine.add(emoji);
       });
       setReactions(counts);
       setMyReactions(mine);
     };
 
-    // 답글 로드
     const loadReplies = async () => {
       const { data } = await supabase
         .from("gmepu_replies")
@@ -124,31 +123,33 @@ export function MemoDetailSheet({ memo, fingerprint, onClose, timeAgo }: MemoDet
 
     loadReactions();
     loadReplies();
-  }, [memo.id, fingerprint]);
+  }, [memo.id, userId]);
 
   const toggleReaction = async (emoji: string) => {
+    if (!userId) { onLoginRequired(); return; }
+
     if (myReactions.has(emoji)) {
       await supabase
         .from("gmepu_reactions")
         .delete()
         .eq("memo_id", memo.id)
-        .eq("fingerprint", fingerprint)
+        .eq("user_id", userId)
         .eq("emoji", emoji);
       setMyReactions((prev) => { const s = new Set(prev); s.delete(emoji); return s; });
       setReactions((prev) => ({ ...prev, [emoji]: Math.max(0, (prev[emoji] ?? 1) - 1) }));
     } else {
-      await supabase.from("gmepu_reactions").insert({ memo_id: memo.id, fingerprint, emoji });
+      await supabase.from("gmepu_reactions").insert({ memo_id: memo.id, user_id: userId, emoji });
       setMyReactions((prev) => new Set([...prev, emoji]));
       setReactions((prev) => ({ ...prev, [emoji]: (prev[emoji] ?? 0) + 1 }));
     }
   };
 
   const submitReply = async () => {
+    if (!userId || !userNickname) { onLoginRequired(); return; }
     if (!replyText.trim()) return;
-    const nickname = localStorage.getItem("gmepu_nickname") ?? "익명";
     const { data } = await supabase
       .from("gmepu_replies")
-      .insert({ memo_id: memo.id, text: replyText.trim(), nickname, fingerprint })
+      .insert({ memo_id: memo.id, text: replyText.trim(), nickname: userNickname, user_id: userId })
       .select()
       .single();
     if (data) {
@@ -174,7 +175,7 @@ export function MemoDetailSheet({ memo, fingerprint, onClose, timeAgo }: MemoDet
         <div className="memo-card p-5 rounded-lg mb-5" style={{ background: memo.color, rotate: "-1deg" }}>
           <p className="font-medium text-base leading-relaxed mb-3">{memo.text}</p>
           <div className="flex items-center justify-between text-xs opacity-60">
-            <span>{getNicknameEmoji(memo.nickname)} {memo.nickname}</span>
+            <span>{memo.nickname}</span>
             <span>{timeAgo}</span>
           </div>
         </div>
@@ -207,9 +208,7 @@ export function MemoDetailSheet({ memo, fingerprint, onClose, timeAgo }: MemoDet
                 className="px-3 py-2 rounded-xl text-sm"
                 style={{ background: "rgba(26,19,6,0.07)" }}
               >
-                <span className="font-bold opacity-70 text-xs">
-                  {getNicknameEmoji(reply.nickname)} {reply.nickname}
-                </span>
+                <span className="font-bold opacity-70 text-xs">{reply.nickname}</span>
                 <p className="mt-0.5">{reply.text}</p>
               </div>
             ))}
@@ -221,11 +220,13 @@ export function MemoDetailSheet({ memo, fingerprint, onClose, timeAgo }: MemoDet
           <input
             className="flex-1 px-4 py-3 rounded-2xl text-sm font-medium outline-none"
             style={{ background: "rgba(26,19,6,0.1)", color: "var(--dark)" }}
-            placeholder="답글 달기... (80자)"
+            placeholder={userId ? "답글 달기... (80자)" : "로그인 후 답글을 달 수 있어요"}
             maxLength={80}
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submitReply()}
+            onFocus={() => { if (!userId) onLoginRequired(); }}
+            readOnly={!userId}
           />
           <button
             className="btn-chunky px-4 py-3 rounded-2xl font-display font-black text-sm"
