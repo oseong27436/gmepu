@@ -1,8 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import type { Memo } from "./MemoPin";
 import { MEMO_COLORS } from "./MemoPin";
+
+interface Memo {
+  id: string;
+  text: string;
+  author: string;
+  likes: number;
+  createdAt: string;
+  color: string;
+}
 
 interface MemoSheetProps {
   onSubmit: (text: string, color: string) => void;

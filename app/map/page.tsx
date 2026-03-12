@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import {
   APIProvider,
@@ -8,106 +8,126 @@ import {
   AdvancedMarker,
   useMap,
 } from "@vis.gl/react-google-maps";
-import type { Memo } from "@/components/MemoPin";
+import { supabase, type GmepuMemo } from "@/lib/supabase";
 import { MEMO_COLORS } from "@/components/MemoPin";
 import { AddMemoSheet, MemoDetailSheet } from "@/components/MemoSheet";
 
-// 샘플 데이터
-const INITIAL_MEMOS: Memo[] = [
-  {
-    id: "1",
-    text: "여기 붕어빵 진짜 맛있음 🐟",
-    author: "익명의 미식가",
-    likes: 12,
-    createdAt: "10분 전",
-    color: MEMO_COLORS[0],
-    lat: 37.5665,
-    lng: 126.978,
-  },
-  {
-    id: "2",
-    text: "이 골목 야경 예쁨 ✨ 사진 꼭 찍어봐요",
-    author: "야경러버",
-    likes: 28,
-    createdAt: "1시간 전",
-    color: MEMO_COLORS[1],
-    lat: 37.5672,
-    lng: 126.9795,
-  },
-  {
-    id: "3",
-    text: "조용해서 공부하기 최고 📚 와이파이도 됨",
-    author: "카공족",
-    likes: 7,
-    createdAt: "3시간 전",
-    color: MEMO_COLORS[2],
-    lat: 37.5658,
-    lng: 126.9768,
-  },
-  {
-    id: "4",
-    text: "숨겨진 카페 발견! 오너분 친절하심 ☕",
-    author: "카페탐험가",
-    likes: 34,
-    createdAt: "어제",
-    color: MEMO_COLORS[3],
-    lat: 37.5679,
-    lng: 126.9755,
-  },
-  {
-    id: "5",
-    text: "고양이 항상 여기 있음 🐱 밥 주지 마세요",
-    author: "냥이지킴이",
-    likes: 56,
-    createdAt: "2일 전",
-    color: MEMO_COLORS[4],
-    lat: 37.5648,
-    lng: 126.9805,
-  },
-];
+// 브라우저 핑거프린트 (간단 버전)
+function getFingerprint(): string {
+  const key = "gmepu_fp";
+  let fp = localStorage.getItem(key);
+  if (!fp) {
+    fp = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem(key, fp);
+  }
+  return fp;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "방금";
+  if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}시간 전`;
+  return `${Math.floor(h / 24)}일 전`;
+}
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
 
 function MapContent() {
   const map = useMap();
-  const [memos, setMemos] = useState<Memo[]>(INITIAL_MEMOS);
-  const [selectedMemo, setSelectedMemo] = useState<Memo | null>(null);
+  const [memos, setMemos] = useState<GmepuMemo[]>([]);
+  const [selectedMemo, setSelectedMemo] = useState<GmepuMemo | null>(null);
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // 메모 로드
+  useEffect(() => {
+    const loadMemos = async () => {
+      const { data } = await supabase
+        .from("gmepu_memos")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (data) setMemos(data);
+      setLoading(false);
+    };
+    loadMemos();
+
+    // 실시간 업데이트
+    const channel = supabase
+      .channel("gmepu_memos")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "gmepu_memos" },
+        () => loadMemos()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // 현재 지도 영역 기준 메모만 필터
+  const [bounds, setBounds] = useState<google.maps.LatLngBounds | null>(null);
+  const visibleMemos = bounds
+    ? memos.filter((m) =>
+        bounds.contains({ lat: m.lat, lng: m.lng })
+      )
+    : memos;
 
   const handleAddMemo = useCallback(
-    (text: string, color: string) => {
+    async (text: string, color: string) => {
       if (!map) return;
       const center = map.getCenter();
       if (!center) return;
 
-      const newMemo: Memo = {
-        id: Date.now().toString(),
-        text,
-        author: "나",
-        likes: 0,
-        createdAt: "방금",
-        color,
-        lat: center.lat(),
-        lng: center.lng(),
-      };
-      setMemos((prev) => [...prev, newMemo]);
+      const { data } = await supabase
+        .from("gmepu_memos")
+        .insert({
+          text,
+          color,
+          lat: center.lat(),
+          lng: center.lng(),
+          author: "익명",
+        })
+        .select()
+        .single();
+
+      if (data) setMemos((prev) => [data, ...prev]);
       setShowAddSheet(false);
     },
     [map]
   );
 
-  const handleLike = useCallback((id: string) => {
-    setMemos((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, likes: m.likes + 1 } : m))
-    );
-    setSelectedMemo((prev) =>
-      prev?.id === id ? { ...prev, likes: prev.likes + 1 } : prev
-    );
-  }, []);
+  const handleLike = useCallback(async (id: string) => {
+    const fp = getFingerprint();
+
+    // 중복 좋아요 체크
+    const { error: dupError } = await supabase
+      .from("gmepu_likes")
+      .insert({ memo_id: id, fingerprint: fp });
+
+    if (dupError) return; // 이미 좋아요
+
+    const { data } = await supabase.rpc
+      ? await supabase
+          .from("gmepu_memos")
+          .update({ likes: (memos.find((m) => m.id === id)?.likes ?? 0) + 1 })
+          .eq("id", id)
+          .select()
+          .single()
+      : { data: null };
+
+    if (data) {
+      setMemos((prev) => prev.map((m) => (m.id === id ? data : m)));
+      setSelectedMemo((prev) => (prev?.id === id ? data : prev));
+    }
+  }, [memos]);
 
   return (
     <>
-      {/* 지도 */}
       <Map
         mapId={MAP_ID}
         defaultCenter={{ lat: 37.5665, lng: 126.978 }}
@@ -115,23 +135,27 @@ function MapContent() {
         gestureHandling="greedy"
         disableDefaultUI
         className="w-full h-full"
-        style={{ background: "#f5f0e8" }}
+        onBoundsChanged={(e) => setBounds(e.map.getBounds() ?? null)}
       >
-        {memos.map((memo) => (
+        {visibleMemos.map((memo) => (
           <AdvancedMarker
             key={memo.id}
             position={{ lat: memo.lat, lng: memo.lng }}
             onClick={() => setSelectedMemo(memo)}
           >
             <div
-              className="memo-card px-2.5 py-2 text-xs font-medium leading-snug cursor-pointer max-w-[110px] relative"
+              className="memo-card px-2.5 py-2 text-xs font-medium leading-snug cursor-pointer relative"
               style={{
                 background: memo.color,
                 borderRadius: "4px",
-                transform: `rotate(${memo.id.charCodeAt(0) % 2 === 0 ? "2deg" : "-2deg"})`,
+                maxWidth: "110px",
+                transform: `rotate(${parseInt(memo.id[0], 16) % 2 === 0 ? "2deg" : "-2deg"})`,
               }}
             >
               <p className="line-clamp-2">{memo.text}</p>
+              {memo.likes > 0 && (
+                <p className="text-[10px] opacity-50 mt-0.5">♥ {memo.likes}</p>
+              )}
               <div
                 className="absolute -bottom-2 left-1/2 -translate-x-1/2"
                 style={{
@@ -158,9 +182,13 @@ function MapContent() {
         </Link>
         <div
           className="font-display font-bold px-3 py-2 rounded-xl text-xs pointer-events-auto"
-          style={{ background: "white", color: "var(--dark)", boxShadow: "0 2px 8px rgba(0,0,0,0.12)" }}
+          style={{
+            background: "white",
+            color: "var(--dark)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          }}
         >
-          📍 메모 {memos.length}개
+          {loading ? "불러오는 중..." : `📍 메모 ${visibleMemos.length}개`}
         </div>
       </div>
 
@@ -182,7 +210,10 @@ function MapContent() {
           style={{ background: "white", color: "var(--dark)" }}
           onClick={() => {
             navigator.geolocation?.getCurrentPosition((pos) => {
-              map?.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+              map?.panTo({
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+              });
             });
           }}
         >
@@ -190,7 +221,6 @@ function MapContent() {
         </button>
       </div>
 
-      {/* 시트들 */}
       {showAddSheet && (
         <AddMemoSheet
           onSubmit={handleAddMemo}
@@ -199,7 +229,10 @@ function MapContent() {
       )}
       {selectedMemo && (
         <MemoDetailSheet
-          memo={selectedMemo}
+          memo={{
+            ...selectedMemo,
+            createdAt: timeAgo(selectedMemo.created_at),
+          }}
           onClose={() => setSelectedMemo(null)}
           onLike={handleLike}
         />
