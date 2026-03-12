@@ -33,7 +33,7 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(h / 24)}일 전`;
 }
 
-const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
+const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
 
 function MapContent() {
   const map = useMap();
