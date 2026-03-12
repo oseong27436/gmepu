@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   APIProvider,
@@ -8,11 +8,12 @@ import {
   AdvancedMarker,
   useMap,
 } from "@vis.gl/react-google-maps";
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { supabase, type GmepuMemo } from "@/lib/supabase";
 import { MEMO_COLORS } from "@/components/MemoPin";
 import { AddMemoSheet, MemoDetailSheet } from "@/components/MemoSheet";
+import { generateNickname, getNicknameEmoji } from "@/lib/nickname";
 
-// 브라우저 핑거프린트 (간단 버전)
 function getFingerprint(): string {
   const key = "gmepu_fp";
   let fp = localStorage.getItem(key);
@@ -21,6 +22,16 @@ function getFingerprint(): string {
     localStorage.setItem(key, fp);
   }
   return fp;
+}
+
+function getOrCreateNickname(): string {
+  const key = "gmepu_nickname";
+  let name = localStorage.getItem(key);
+  if (!name) {
+    name = generateNickname();
+    localStorage.setItem(key, name);
+  }
+  return name;
 }
 
 function timeAgo(dateStr: string): string {
@@ -35,12 +46,52 @@ function timeAgo(dateStr: string): string {
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
 
+// 위치 권한 요청 화면
+function LocationPermissionScreen({ onAllow, onSkip }: { onAllow: () => void; onSkip: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: "var(--yellow)" }}>
+      <div className="text-center max-w-xs">
+        <div className="text-7xl mb-6">📍</div>
+        <h2 className="font-display font-black text-3xl mb-3" style={{ color: "var(--dark)" }}>
+          내 위치를 알려줘요
+        </h2>
+        <p className="mb-8 leading-relaxed opacity-70" style={{ color: "var(--dark)", fontSize: "15px" }}>
+          주변 메모를 발견하고<br />지금 있는 곳에 메모를 남기려면<br />위치 권한이 필요해요.
+        </p>
+        <button
+          className="btn-chunky w-full font-display font-black py-4 rounded-2xl text-lg mb-3"
+          style={{ background: "var(--dark)", color: "var(--yellow)" }}
+          onClick={onAllow}
+        >
+          내 위치 허용하기 🗺️
+        </button>
+        <button
+          className="w-full font-display font-bold py-3 opacity-50"
+          style={{ color: "var(--dark)" }}
+          onClick={onSkip}
+        >
+          나중에
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function MapContent() {
   const map = useMap();
   const [memos, setMemos] = useState<GmepuMemo[]>([]);
   const [selectedMemo, setSelectedMemo] = useState<GmepuMemo | null>(null);
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [showMyMemos, setShowMyMemos] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [nickname, setNickname] = useState("");
+  const [fingerprint, setFingerprint] = useState("");
+
+  useEffect(() => {
+    setFingerprint(getFingerprint());
+    setNickname(getOrCreateNickname());
+  }, []);
 
   // 메모 로드
   useEffect(() => {
@@ -54,77 +105,58 @@ function MapContent() {
     };
     loadMemos();
 
-    // 실시간 업데이트
     const channel = supabase
-      .channel("gmepu_memos")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "gmepu_memos" },
-        () => loadMemos()
-      )
+      .channel("gmepu_memos_realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "gmepu_memos" }, () => loadMemos())
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // 현재 지도 영역 기준 메모만 필터
-  const [bounds, setBounds] = useState<google.maps.LatLngBounds | null>(null);
-  const visibleMemos = bounds
-    ? memos.filter((m) =>
-        bounds.contains({ lat: m.lat, lng: m.lng })
-      )
-    : memos;
+  // 현재 위치 추적
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const watcher = navigator.geolocation.watchPosition(
+      (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: true }
+    );
+    return () => navigator.geolocation.clearWatch(watcher);
+  }, []);
 
-  const handleAddMemo = useCallback(
-    async (text: string, color: string) => {
-      if (!map) return;
-      const center = map.getCenter();
-      if (!center) return;
+  const handleAddMemo = useCallback(async (text: string, color: string) => {
+    if (!map) return;
+    const center = map.getCenter();
+    if (!center) return;
 
-      const { data } = await supabase
-        .from("gmepu_memos")
-        .insert({
-          text,
-          color,
-          lat: center.lat(),
-          lng: center.lng(),
-          author: "익명",
-        })
-        .select()
-        .single();
-
-      if (data) setMemos((prev) => [data, ...prev]);
-      setShowAddSheet(false);
-    },
-    [map]
-  );
-
-  const handleLike = useCallback(async (id: string) => {
-    const fp = getFingerprint();
-
-    // 중복 좋아요 체크
-    const { error: dupError } = await supabase
-      .from("gmepu_likes")
-      .insert({ memo_id: id, fingerprint: fp });
-
-    if (dupError) return; // 이미 좋아요
-
-    const { data } = await supabase.rpc
-      ? await supabase
-          .from("gmepu_memos")
-          .update({ likes: (memos.find((m) => m.id === id)?.likes ?? 0) + 1 })
-          .eq("id", id)
-          .select()
-          .single()
-      : { data: null };
+    const { data } = await supabase
+      .from("gmepu_memos")
+      .insert({ text, color, lat: center.lat(), lng: center.lng(), nickname, likes: 0 })
+      .select()
+      .single();
 
     if (data) {
-      setMemos((prev) => prev.map((m) => (m.id === id ? data : m)));
-      setSelectedMemo((prev) => (prev?.id === id ? data : prev));
+      setMemos((prev) => [data, ...prev]);
+      const myIds: string[] = JSON.parse(localStorage.getItem("gmepu_my_memo_ids") ?? "[]");
+      localStorage.setItem("gmepu_my_memo_ids", JSON.stringify([...myIds, data.id]));
     }
-  }, [memos]);
+    setShowAddSheet(false);
+  }, [map, nickname]);
+
+  const goToMyLocation = () => {
+    if (userPos) map?.panTo(userPos);
+    else navigator.geolocation?.getCurrentPosition((pos) => {
+      const pos2 = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      setUserPos(pos2);
+      map?.panTo(pos2);
+    });
+  };
+
+  const myMemos = memos.filter((m) => {
+    // fingerprint 기반으로 내 메모 판별은 클라이언트 로컬스토리지에 저장된 ID 목록으로
+    const myIds: string[] = JSON.parse(localStorage.getItem("gmepu_my_memo_ids") ?? "[]");
+    return myIds.includes(m.id);
+  });
 
   return (
     <>
@@ -135,9 +167,30 @@ function MapContent() {
         gestureHandling="greedy"
         disableDefaultUI
         className="w-full h-full"
-        onBoundsChanged={(e) => setBounds(e.map.getBounds() ?? null)}
       >
-        {visibleMemos.map((memo) => (
+        {/* 내 위치 캐릭터 */}
+        {userPos && (
+          <AdvancedMarker position={userPos}>
+            <div className="flex flex-col items-center">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-lg"
+                style={{ background: "var(--yellow)", borderColor: "var(--dark)" }}
+              >
+                {getNicknameEmoji(nickname)}
+              </div>
+              <div
+                className="text-xs font-bold px-2 py-0.5 rounded-full mt-1 whitespace-nowrap"
+                style={{ background: "var(--dark)", color: "var(--yellow)" }}
+              >
+                {nickname}
+              </div>
+              <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "7px solid var(--dark)" }} />
+            </div>
+          </AdvancedMarker>
+        )}
+
+        {/* 메모 핀들 */}
+        {memos.map((memo) => (
           <AdvancedMarker
             key={memo.id}
             position={{ lat: memo.lat, lng: memo.lng }}
@@ -153,19 +206,7 @@ function MapContent() {
               }}
             >
               <p className="line-clamp-2">{memo.text}</p>
-              {memo.likes > 0 && (
-                <p className="text-[10px] opacity-50 mt-0.5">♥ {memo.likes}</p>
-              )}
-              <div
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2"
-                style={{
-                  width: 0,
-                  height: 0,
-                  borderLeft: "5px solid transparent",
-                  borderRight: "5px solid transparent",
-                  borderTop: `7px solid ${memo.color}`,
-                }}
-              />
+              <div style={{ position: "absolute", bottom: "-7px", left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `7px solid ${memo.color}` }} />
             </div>
           </AdvancedMarker>
         ))}
@@ -180,19 +221,25 @@ function MapContent() {
         >
           ← 지메뿌
         </Link>
-        <div
-          className="font-display font-bold px-3 py-2 rounded-xl text-xs pointer-events-auto"
-          style={{
-            background: "white",
-            color: "var(--dark)",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-          }}
-        >
-          {loading ? "불러오는 중..." : `📍 메모 ${visibleMemos.length}개`}
+        <div className="flex gap-2">
+          {/* 내 메모 버튼 */}
+          <button
+            className="btn-chunky font-display font-bold px-3 py-2 rounded-xl text-xs pointer-events-auto"
+            style={{ background: "white", color: "var(--dark)" }}
+            onClick={() => setShowMyMemos(true)}
+          >
+            📋 내 메모
+          </button>
+          <div
+            className="font-display font-bold px-3 py-2 rounded-xl text-xs pointer-events-auto"
+            style={{ background: "white", color: "var(--dark)", boxShadow: "0 2px 8px rgba(0,0,0,0.12)" }}
+          >
+            {loading ? "불러오는 중..." : `📍 ${memos.length}개`}
+          </div>
         </div>
       </div>
 
-      {/* 메모 추가 버튼 */}
+      {/* 하단 버튼들 */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
         <button
           className="btn-chunky font-display font-black px-8 py-4 rounded-2xl text-lg"
@@ -202,24 +249,54 @@ function MapContent() {
           + 메모 뿌리기
         </button>
       </div>
-
-      {/* 현재 위치 버튼 */}
       <div className="absolute bottom-8 right-4">
         <button
           className="btn-chunky w-14 h-14 rounded-2xl text-xl flex items-center justify-center"
           style={{ background: "white", color: "var(--dark)" }}
-          onClick={() => {
-            navigator.geolocation?.getCurrentPosition((pos) => {
-              map?.panTo({
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude,
-              });
-            });
-          }}
+          onClick={goToMyLocation}
         >
-          📍
+          {getNicknameEmoji(nickname)}
         </button>
       </div>
+
+      {/* 내 메모 패널 */}
+      {showMyMemos && (
+        <div
+          className="fixed inset-0 z-50 flex items-end"
+          style={{ background: "rgba(0,0,0,0.3)" }}
+          onClick={() => setShowMyMemos(false)}
+        >
+          <div
+            className="w-full rounded-t-3xl p-6 pb-10 max-h-[70vh] overflow-y-auto"
+            style={{ background: "var(--yellow)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full mx-auto mb-5 opacity-30" style={{ background: "var(--dark)" }} />
+            <h2 className="font-display font-black text-xl mb-1" style={{ color: "var(--dark)" }}>
+              {getNicknameEmoji(nickname)} {nickname}
+            </h2>
+            <p className="text-xs opacity-50 mb-5">내가 남긴 메모들</p>
+            {(() => {
+              const myIds: string[] = JSON.parse(localStorage.getItem("gmepu_my_memo_ids") ?? "[]");
+              const my = memos.filter((m) => myIds.includes(m.id));
+              if (my.length === 0) return (
+                <p className="text-center opacity-40 py-8">아직 남긴 메모가 없어요 ✏️</p>
+              );
+              return my.map((memo) => (
+                <div
+                  key={memo.id}
+                  className="memo-card p-3 rounded-lg mb-3 cursor-pointer"
+                  style={{ background: memo.color }}
+                  onClick={() => { setSelectedMemo(memo); setShowMyMemos(false); }}
+                >
+                  <p className="text-sm font-medium">{memo.text}</p>
+                  <p className="text-xs opacity-50 mt-1">{timeAgo(memo.created_at)}</p>
+                </div>
+              ));
+            })()}
+          </div>
+        </div>
+      )}
 
       {showAddSheet && (
         <AddMemoSheet
@@ -229,12 +306,10 @@ function MapContent() {
       )}
       {selectedMemo && (
         <MemoDetailSheet
-          memo={{
-            ...selectedMemo,
-            createdAt: timeAgo(selectedMemo.created_at),
-          }}
+          memo={selectedMemo}
+          fingerprint={fingerprint}
           onClose={() => setSelectedMemo(null)}
-          onLike={handleLike}
+          timeAgo={timeAgo(selectedMemo.created_at)}
         />
       )}
     </>
@@ -242,13 +317,36 @@ function MapContent() {
 }
 
 export default function MapPage() {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+  const [locationAsked, setLocationAsked] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+
+  useEffect(() => {
+    const asked = localStorage.getItem("gmepu_location_asked");
+    if (asked) setShowMap(true);
+    else setLocationAsked(true);
+  }, []);
+
+  const handleAllow = () => {
+    navigator.geolocation?.getCurrentPosition(() => {});
+    localStorage.setItem("gmepu_location_asked", "true");
+    setLocationAsked(false);
+    setShowMap(true);
+  };
+
+  const handleSkip = () => {
+    localStorage.setItem("gmepu_location_asked", "true");
+    setLocationAsked(false);
+    setShowMap(true);
+  };
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
-      <APIProvider apiKey={apiKey}>
-        <MapContent />
-      </APIProvider>
+      {locationAsked && <LocationPermissionScreen onAllow={handleAllow} onSkip={handleSkip} />}
+      {showMap && (
+        <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""}>
+          <MapContent />
+        </APIProvider>
+      )}
     </div>
   );
 }
