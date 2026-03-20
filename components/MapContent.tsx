@@ -305,8 +305,11 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
         {!showPins && (() => {
           const minCount = Math.min(...clusters.map(c => c.count));
           const maxCount = Math.max(...clusters.map(c => c.count));
-          const getIntensity = (count: number) =>
-            maxCount === minCount ? 0.5 : (count - minCount) / (maxCount - minCount);
+          const getIntensity = (count: number) => {
+            const relative = maxCount === minCount ? 0.5 : (count - minCount) / (maxCount - minCount);
+            const absolute = Math.min(Math.sqrt(count) / 10, 1);
+            return (relative + absolute) / 2;
+          };
 
           return clusters.map((cluster, i) => {
           const intensity = getIntensity(cluster.count);
