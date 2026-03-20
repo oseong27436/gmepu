@@ -16,7 +16,6 @@ interface Cluster {
   lat: number;
   lng: number;
   count: number;
-  fireCount: number;
   memos: GmepuMemo[];
   label?: string;
 }
@@ -57,7 +56,6 @@ function clusterMemos(memos: GmepuMemo[], zoom: number): Cluster[] {
       lat: group.reduce((s: number, m: GmepuMemo) => s + m.lat, 0) / group.length,
       lng: group.reduce((s: number, m: GmepuMemo) => s + m.lng, 0) / group.length,
       count: group.length,
-      fireCount: group.reduce((s: number, m: GmepuMemo) => s + (m.fire_count ?? 0), 0),
       memos: group,
       label,
     };
@@ -273,20 +271,17 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
         {/* 클러스터 글로우 (줌 아웃 시) */}
         {!showPins && clusters.map((cluster, i) => {
           // log 스케일로 밀도 강도 계산 (1개=0, 10개≈1)
-          // 🔥가 많을수록 heatScore 가중치 증가 (🔥 1개 = 메모 3개 가치)
-          const heatScore = cluster.count + cluster.fireCount * 3;
-          const intensity = Math.min(Math.log10(heatScore + 1) / 3, 1);
-          // 🔥 비율: 클러스터 내 메모당 평균 🔥 수 기반
-          const fireRatio = Math.min(cluster.fireCount / Math.max(cluster.count * 3, 1), 1);
+          // 개수 기반 log10 스케일: 1→저, 10→중, 100→고, 1000→최대
+          const intensity = Math.min(Math.log10(cluster.count + 1) / 3, 1);
           const size = Math.round(22 + intensity * 32); // 22px ~ 54px
 
-          // 🔥 많으면 주황→붉은주황으로, 기본은 노란→주황
+          // 노랑(#FFE234) → 주황 → 빨강: 개수가 많을수록 뜨거운 색
           const r = 255;
-          const g = Math.round(220 - intensity * 80 - fireRatio * 60); // 🔥 많으면 더 붉게
-          const b = Math.round(30 - intensity * 30);
-          const color = `rgb(${r},${Math.max(g, 80)},${b})`;
-          const glowSpread = Math.round(4 + intensity * 8 + fireRatio * 6);
-          const glowAlpha = 0.2 + intensity * 0.2 + fireRatio * 0.15;
+          const g = Math.round(220 - intensity * 180); // 220 → 40
+          const b = Math.round(30 - intensity * 30);   // 30 → 0
+          const color = `rgb(${r},${Math.max(g, 40)},${Math.max(b, 0)})`;
+          const glowSpread = Math.round(4 + intensity * 10);
+          const glowAlpha = 0.18 + intensity * 0.22;
           const animDur = (2.2 - intensity * 1.2).toFixed(1); // 2.2s → 1.0s
 
           return (
