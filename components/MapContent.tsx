@@ -10,7 +10,7 @@ import MapHeader from "@/components/MapHeader";
 import MyMemoPanel from "@/components/MyMemoPanel";
 
 // zoom >= 이 값이면 개별 핀 표시, 미만이면 클러스터 글로우 표시
-const SHOW_PINS_ZOOM = 15;
+const SHOW_PINS_ZOOM = 17;
 
 interface Cluster {
   lat: number;
@@ -20,7 +20,11 @@ interface Cluster {
 }
 
 function clusterMemos(memos: GmepuMemo[], zoom: number): Cluster[] {
-  const gridDeg = 0.1 * Math.pow(2, 14 - zoom);
+  // SHOW_PINS_ZOOM 기준으로 스케일:
+  // zoom 16 ≈ 0.03° (동 단위 ~3km)
+  // zoom 14 ≈ 0.12° (구 단위 ~13km)
+  // zoom 12 ≈ 0.48° (광역 단위)
+  const gridDeg = 0.015 * Math.pow(2, SHOW_PINS_ZOOM - zoom);
   const cells: Record<string, GmepuMemo[]> = {};
 
   for (const memo of memos) {
@@ -245,14 +249,14 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
           const intensity = Math.min(Math.log2(cluster.count + 1) / Math.log2(11), 1);
           const size = Math.round(22 + intensity * 28); // 22px ~ 50px
 
-          // 노란 → 주황 → 붉은주황
+          // 노란 → 주황 (붉은주황은 제거)
           const r = 255;
-          const g = Math.round(220 - intensity * 110);
-          const b = Math.round(40 - intensity * 40);
+          const g = Math.round(220 - intensity * 80); // 220 → 140 (주황까지만)
+          const b = Math.round(30 - intensity * 30);
           const color = `rgb(${r},${g},${b})`;
-          const glowSpread = Math.round(6 + intensity * 18);
-          const glowAlpha = 0.35 + intensity * 0.35;
-          const animDur = (2 - intensity * 0.8).toFixed(1); // 2s → 1.2s (핫할수록 빠름)
+          const glowSpread = Math.round(4 + intensity * 8);  // 절반으로 축소
+          const glowAlpha = 0.2 + intensity * 0.2;           // 더 은은하게
+          const animDur = (2.2 - intensity * 0.6).toFixed(1); // 2.2s → 1.6s
 
           return (
             <AdvancedMarker

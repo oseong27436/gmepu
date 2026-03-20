@@ -41,8 +41,8 @@ body {
 }
 
 @keyframes glow-pulse {
-  0%, 100% { transform: scale(1);    opacity: 0.85; }
-  50%       { transform: scale(1.25); opacity: 1;    }
+  0%, 100% { transform: scale(1);    opacity: 0.8; }
+  50%       { transform: scale(1.08); opacity: 1;   }
 }
 .glow-marker {
   border-radius: 50%;
