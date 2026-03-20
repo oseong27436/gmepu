@@ -280,12 +280,14 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
         {/* 클러스터 도트 */}
         {!showPins && clusters.map((cluster, i) => {
           const intensity = Math.min(Math.log10(cluster.count + 1) / 3, 1);
-
-          // zoom 17~18: 작고 조용한 도트 / zoom < 17: 큰 글로우 도트
           const isNear = zoom >= 17;
-          const size = isNear
-            ? Math.round(12 + intensity * 14)   // 12px ~ 26px (작은 도트)
-            : Math.round(22 + intensity * 32);   // 22px ~ 54px (큰 글로우)
+
+          // 줌인할수록 도트가 커짐 — 커버하는 지리적 넓이를 시각적으로 채우는 효과
+          const zoomScale = Math.pow(1.3, Math.max(0, zoom - 12));
+          const baseSize = isNear
+            ? Math.round((10 + intensity * 10) * Math.pow(1.5, zoom - 16))  // zoom 17→×1.5, 18→×2.25
+            : Math.round(Math.min((18 + intensity * 26) * zoomScale, 130)); // zoom 12→18~44px, 16→51~126px
+          const size = baseSize;
 
           // 노랑 → 주황 → 빨강
           const r = 255;
@@ -293,10 +295,10 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
           const b = Math.round(30 - intensity * 30);
           const color = `rgb(${r},${Math.max(g, 40)},${Math.max(b, 0)})`;
           const glowSpread = isNear
-            ? Math.round(2 + intensity * 4)      // 글로우 거의 없음
-            : Math.round(4 + intensity * 10);
+            ? Math.round(2 + intensity * 3)
+            : Math.round(size * 0.12 + intensity * 6); // 도트 크기에 비례한 글로우
           const glowAlpha = isNear ? 0.15 : 0.18 + intensity * 0.22;
-          const animDur = isNear ? "0" : (2.2 - intensity * 1.2).toFixed(1); // 가까우면 애니메이션 끔
+          const animDur = isNear ? "0" : (2.2 - intensity * 1.2).toFixed(1);
 
           return (
             <AdvancedMarker
