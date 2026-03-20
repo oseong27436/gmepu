@@ -45,28 +45,25 @@ body {
   50%       { transform: scale(1.08); opacity: 1;   }
 }
 .glow-marker {
-  border-radius: 50%;
   animation: glow-pulse var(--glow-dur, 2s) ease-in-out infinite;
   cursor: pointer;
 }
-/* zoom 17~18: 애니메이션 없는 작은 도트 */
+/* zoom 17~18: 애니메이션 없는 */
 .near-cluster {
-  border-radius: 50%;
   cursor: pointer;
   opacity: 0.85;
 }
 
-/* 채팅방 패널: 모바일 하단 / 데스크탑 좌측 */
+/* 채팅방 패널: 항상 왼쪽 슬라이드 */
 .chat-panel {
   position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 320px;
   z-index: 40;
-  bottom: 0; left: 0; right: 0;
-  height: 62vh;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 @media (min-width: 768px) {
   .chat-panel {
-    top: 0; left: 0; right: auto; bottom: 0;
     width: 340px;
-    height: 100%;
   }
 }

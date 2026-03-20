@@ -89,6 +89,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
   const [showFriends, setShowFriends] = useState(false);
   const [chatRooms, setChatRooms] = useState<GmepuChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<GmepuChatRoom | null>(null);
+  const [chatPanelOpen, setChatPanelOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<"all" | "friends" | "hot">("all");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -300,28 +301,27 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           </AdvancedMarker>
         )}
 
-        {/* 클러스터 도트 */}
+        {/* 클러스터 메모 아이콘 */}
         {!showPins && clusters.map((cluster, i) => {
           const intensity = Math.min(Math.log10(cluster.count + 1) / 3, 1);
           const isNear = zoom >= 17;
-
-          // 줌인할수록 도트가 커짐 — 커버하는 지리적 넓이를 시각적으로 채우는 효과
-          const zoomScale = Math.pow(1.3, Math.max(0, zoom - 12));
-          const baseSize = isNear
-            ? Math.round((30 + intensity * 26) * Math.pow(1.6, zoom - 16))  // zoom 17→×1.6, 18→×2.56
-            : Math.round(Math.min((18 + intensity * 26) * zoomScale, 130));
-          const size = baseSize;
 
           // 노랑 → 주황 → 빨강
           const r = 255;
           const g = Math.round(220 - intensity * 180);
           const b = Math.round(30 - intensity * 30);
           const color = `rgb(${r},${Math.max(g, 40)},${Math.max(b, 0)})`;
-          const glowSpread = isNear
-            ? Math.round(2 + intensity * 3)
-            : Math.round(size * 0.12 + intensity * 6); // 도트 크기에 비례한 글로우
-          const glowAlpha = isNear ? 0.15 : 0.18 + intensity * 0.22;
+
+          const glowSpread = Math.round(4 + intensity * 8);
+          const glowAlpha = 0.18 + intensity * 0.32;
           const animDur = isNear ? "0" : (2.2 - intensity * 1.2).toFixed(1);
+
+          // 아이콘 크기: 줌과 강도 기반
+          const zoomScale = Math.pow(1.25, Math.max(0, zoom - 12));
+          const size = Math.round(Math.min((32 + intensity * 14) * (isNear ? 1.3 : zoomScale), 80));
+
+          const rot = (i % 3 === 0) ? "2deg" : i % 3 === 1 ? "-2deg" : "1deg";
+          const cornerSize = Math.max(8, Math.round(size * 0.26));
 
           return (
             <AdvancedMarker
@@ -335,18 +335,49 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
                   width: size,
                   height: size,
                   background: color,
-                  boxShadow: `0 0 ${glowSpread}px ${Math.round(glowSpread / 2)}px rgba(${r},${Math.max(g,40)},${Math.max(b,0)},${glowAlpha})`,
+                  filter: `drop-shadow(0 0 ${glowSpread}px rgba(${r},${Math.max(g,40)},${Math.max(b,0)},${glowAlpha}))`,
                   ["--glow-dur" as string]: `${animDur}s`,
+                  transform: `rotate(${rot})`,
+                  clipPath: `polygon(0 0, calc(100% - ${cornerSize}px) 0, 100% ${cornerSize}px, 100% 100%, 0 100%)`,
                   display: "flex",
-                  alignItems: "center",
+                  flexDirection: "column",
                   justifyContent: "center",
-                  fontSize: isNear ? "16px" : "13px",
-                  fontWeight: "900",
-                  color: "white",
-                  textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+                  gap: Math.max(2, Math.round(size * 0.08)),
+                  padding: `${Math.round(size * 0.2)}px ${Math.round(size * 0.18)}px ${Math.round(size * 0.2)}px ${Math.round(size * 0.18)}px`,
+                  cursor: "pointer",
+                  position: "relative",
                 }}
               >
-                {cluster.count > 1 ? cluster.count : ""}
+                {/* 접힌 모서리 */}
+                <div style={{
+                  position: "absolute", top: 0, right: 0,
+                  width: 0, height: 0,
+                  borderStyle: "solid",
+                  borderWidth: `${cornerSize}px ${cornerSize}px 0 0`,
+                  borderColor: "rgba(0,0,0,0.15) transparent transparent transparent",
+                }} />
+                {/* 텍스트 줄 암시 */}
+                <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)" }} />
+                <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)", width: "75%" }} />
+                <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)", width: "55%" }} />
+                {/* 개수 배지 */}
+                {cluster.count > 1 && (
+                  <div style={{
+                    position: "absolute",
+                    top: -8, right: -6,
+                    background: "var(--dark)",
+                    color: color,
+                    borderRadius: 99,
+                    padding: "1px 5px",
+                    fontSize: Math.max(9, Math.round(size * 0.22)),
+                    fontWeight: 900,
+                    fontFamily: "Nunito, sans-serif",
+                    lineHeight: 1.4,
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                  }}>
+                    {cluster.count}
+                  </div>
+                )}
               </div>
             </AdvancedMarker>
           );
@@ -414,30 +445,24 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           );
         })}
 
-        {/* 채팅방 말풍선 마커 */}
+        {/* 채팅방 아이콘 마커 */}
         {chatRooms.map((room) => (
           <AdvancedMarker
             key={room.id}
             position={{ lat: room.lat, lng: room.lng }}
-            onClick={() => setSelectedRoom(room)}
+            onClick={() => { setSelectedRoom(room); setChatPanelOpen(true); }}
           >
-            <div style={{ position: "relative", cursor: "pointer" }}>
+            <div style={{ position: "relative", cursor: "pointer", filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.35))" }}>
               <div style={{
+                width: 40, height: 40,
                 background: "var(--dark)",
-                borderRadius: 12,
-                padding: "7px 10px",
-                display: "flex", alignItems: "center", gap: 5,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                borderRadius: "50% 50% 50% 4px",
+                display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="var(--yellow)">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--yellow)">
                   <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
                 </svg>
-                <span style={{ fontSize: 11, fontWeight: 800, color: "var(--yellow)", fontFamily: "Nunito", whiteSpace: "nowrap" }}>
-                  {room.name}
-                </span>
               </div>
-              {/* 꼬리 */}
-              <div style={{ position: "absolute", bottom: -6, left: 16, width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "6px solid var(--dark)" }} />
             </div>
           </AdvancedMarker>
         ))}
@@ -539,12 +564,42 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
         </button>
       </div>
 
+      {/* 채팅 패널 토글 탭 (패널 닫혀 있을 때) */}
+      {selectedRoom && !chatPanelOpen && (
+        <button
+          onClick={() => setChatPanelOpen(true)}
+          title={selectedRoom.name}
+          style={{
+            position: "fixed",
+            left: 0,
+            top: "50%",
+            transform: "translateY(-50%)",
+            zIndex: 39,
+            background: "var(--dark)",
+            border: "none",
+            cursor: "pointer",
+            borderRadius: "0 12px 12px 0",
+            width: 36,
+            height: 56,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "2px 0 8px rgba(0,0,0,0.25)",
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--yellow)">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+          </svg>
+        </button>
+      )}
+
       {selectedRoom && (
         <ChatRoomPanel
           room={selectedRoom}
           userId={user?.id ?? null}
           userNickname={profile?.nickname ?? null}
-          onClose={() => setSelectedRoom(null)}
+          isOpen={chatPanelOpen}
+          onClose={() => setChatPanelOpen(false)}
           onLoginRequired={onLoginRequired}
         />
       )}
