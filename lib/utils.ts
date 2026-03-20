@@ -13,27 +13,29 @@ export function getMemoAgeStyle(createdAt: string) {
   const ageMs = Math.min(Date.now() - new Date(createdAt).getTime(), ONE_WEEK);
   const ratio = ageMs / ONE_WEEK; // 0 (새 메모) → 1 (7일)
 
-  // 노란색 #FFF9B0 → 회색 #AEAAA0
-  const r = Math.round(255 - (255 - 174) * ratio);
-  const g = Math.round(249 - (249 - 170) * ratio);
-  const b = Math.round(176 - (176 - 160) * ratio);
+  // 제곱 곡선: 초반엔 거의 안 변하고 후반에 빠르게 변함
+  // 1일차(0.14): 0.02, 3일차(0.43): 0.18, 5일차(0.71): 0.51, 7일차: 1.0
+  const curved = ratio * ratio;
+
+  // 노란색 #FFF9B0 → 따뜻한 회색 #B8B5A8
+  const r = Math.round(255 - (255 - 184) * curved);
+  const g = Math.round(249 - (249 - 181) * curved);
+  const b = Math.round(176 - (176 - 168) * curved);
   const bgColor = `rgb(${r}, ${g}, ${b})`;
 
-  // 50% 이후부터 낡은 이펙트
-  const wornRatio = ratio > 0.5 ? (ratio - 0.5) * 2 : 0;
+  // 75% 이후부터 낡은 이펙트 (5일차~)
+  const wornRatio = ratio > 0.75 ? (ratio - 0.75) * 4 : 0;
 
-  // border-radius 비대칭으로 틀어짐
   const borderRadius = wornRatio > 0
     ? `${Math.round(4 + wornRatio * 4)}px ${Math.round(3 + wornRatio * 6)}px ${Math.round(5 + wornRatio * 3)}px ${Math.round(4 + wornRatio * 5)}px`
     : "4px";
 
-  // 채도 감소 + 살짝 대비 증가
-  const saturate = Math.round(100 - ratio * 80);
+  // 채도: 초반엔 거의 유지, 후반에 급감
+  const saturate = Math.round(100 - curved * 70);
   const contrast = Math.round(100 + wornRatio * 15);
   const filter = `saturate(${saturate}%) contrast(${contrast}%)`;
 
-  // 살짝 투명해짐
-  const opacity = 1 - ratio * 0.2;
+  const opacity = 1 - curved * 0.2;
 
   return { bgColor, borderRadius, filter, opacity };
 }
