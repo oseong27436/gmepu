@@ -317,7 +317,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: isNear ? "9px" : "11px",
+                  fontSize: isNear ? "11px" : "13px",
                   fontWeight: "900",
                   color: "white",
                   textShadow: "0 1px 3px rgba(0,0,0,0.5)",
@@ -398,24 +398,48 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
           + 메모 뿌리기
         </button>
       </div>
-      <div className="absolute bottom-8 right-4 flex flex-col gap-2">
+      <div className="absolute bottom-8 right-3 flex flex-col gap-2">
+        {/* 나침반 버튼 */}
         <button
-          className="btn-chunky w-14 h-14 rounded-2xl text-xl flex items-center justify-center"
-          style={{
-            background: heading !== null ? "#4285F4" : "white",
-            color: heading !== null ? "white" : "var(--dark)",
-          }}
           onClick={enableHeading}
           title="방향 감지"
+          style={{
+            width: 40, height: 40,
+            borderRadius: "50%",
+            background: "white",
+            border: "none",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+            color: heading !== null ? "#4285F4" : "#666",
+          }}
         >
-          🧭
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+            <path d="M12 4v2M12 18v2M4 12h2M18 12h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <circle cx="12" cy="12" r="2.5" fill={heading !== null ? "#4285F4" : "currentColor"}/>
+          </svg>
         </button>
+        {/* 내 위치 버튼 */}
         <button
-          className="btn-chunky w-14 h-14 rounded-2xl text-xl flex items-center justify-center"
-          style={{ background: "white", color: "var(--dark)" }}
           onClick={goToMyLocation}
+          title="내 위치"
+          style={{
+            width: 40, height: 40,
+            borderRadius: "50%",
+            background: "white",
+            border: "none",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+            color: "#666",
+          }}
         >
-          📍
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+            <circle cx="12" cy="12" r="3.5" fill="#4285F4"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#4285F4" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="12" cy="12" r="8" stroke="#4285F4" strokeWidth="1.5" strokeOpacity="0.4"/>
+          </svg>
         </button>
       </div>
 
