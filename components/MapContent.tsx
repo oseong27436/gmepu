@@ -308,7 +308,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           const getIntensity = (count: number) => {
             const relative = maxCount === minCount ? 0.5 : (count - minCount) / (maxCount - minCount);
             const absolute = Math.min(Math.sqrt(count) / 10, 1);
-            return (relative + absolute) / 2;
+            return Math.min(relative, absolute);
           };
 
           return clusters.map((cluster, i) => {
