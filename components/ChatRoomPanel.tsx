@@ -215,7 +215,7 @@ export default function ChatRoomPanel({ room, userId, userNickname, isOpen, onCl
             placeholder={userId ? "메시지 입력..." : "로그인 후 참여할 수 있어요"}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
+            onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && send()}
             onFocus={() => { if (!userId) onLoginRequired(); }}
             readOnly={!userId}
           />
