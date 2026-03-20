@@ -302,8 +302,14 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
         )}
 
         {/* 클러스터 메모 아이콘 */}
-        {!showPins && clusters.map((cluster, i) => {
-          const intensity = Math.min(Math.sqrt(cluster.count) / 10, 1);
+        {!showPins && (() => {
+          const minCount = Math.min(...clusters.map(c => c.count));
+          const maxCount = Math.max(...clusters.map(c => c.count));
+          const getIntensity = (count: number) =>
+            maxCount === minCount ? 0.5 : (count - minCount) / (maxCount - minCount);
+
+          return clusters.map((cluster, i) => {
+          const intensity = getIntensity(cluster.count);
           const isNear = zoom >= 17;
 
           // 노랑 → 주황 → 빨강
@@ -384,7 +390,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
               </div>
             </AdvancedMarker>
           );
-        })}
+        });})()}
 
         {/* 개별 메모 핀 (줌 인 시) */}
         {showPins && filteredMemos.map((memo) => {
