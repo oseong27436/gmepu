@@ -9,8 +9,8 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{ sido: 
 
     return {
       sido:    get("administrative_area_level_1"),
-      sigungu: get("administrative_area_level_2"),
-      dong:    get("sublocality_level_2") ?? get("sublocality_level_1"),
+      sigungu: get("sublocality_level_1"),
+      dong:    get("sublocality_level_2") ?? get("sublocality_level_3"),
     };
   } catch {
     return { sido: null, sigungu: null, dong: null };
