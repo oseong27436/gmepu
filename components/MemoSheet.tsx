@@ -5,17 +5,18 @@ import { MEMO_COLORS } from "./MemoPin";
 import { supabase, REACTION_EMOJIS, type GmepuMemo, type GmepuReply } from "@/lib/supabase";
 
 interface MemoSheetProps {
-  onSubmit: (text: string, color: string) => void;
+  onSubmit: (text: string, color: string, isAnonymous: boolean) => void;
   onClose: () => void;
 }
 
 export function AddMemoSheet({ onSubmit, onClose }: MemoSheetProps) {
   const [text, setText] = useState("");
   const [selectedColor, setSelectedColor] = useState(MEMO_COLORS[0]);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   const handleSubmit = () => {
     if (!text.trim()) return;
-    onSubmit(text.trim(), selectedColor);
+    onSubmit(text.trim(), selectedColor, isAnonymous);
     setText("");
   };
 
@@ -50,11 +51,11 @@ export function AddMemoSheet({ onSubmit, onClose }: MemoSheetProps) {
           ))}
         </div>
 
-        <div className="memo-card p-4 mb-4 rounded-lg" style={{ background: selectedColor }}>
+        <div className="memo-card p-4 mb-3 rounded-lg" style={{ background: selectedColor }}>
           <textarea
             className="w-full bg-transparent outline-none text-sm font-medium resize-none"
             style={{ color: "var(--dark)", minHeight: "80px" }}
-            placeholder={"짧고 가볍게 남겨봐요 ✨\nEx) 여기 붕어빵 맛있음"}
+            placeholder="짧고 가볍게 남겨봐요 ✨"
             maxLength={100}
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -62,6 +63,20 @@ export function AddMemoSheet({ onSubmit, onClose }: MemoSheetProps) {
           />
           <div className="text-right text-xs opacity-40">{text.length}/100</div>
         </div>
+
+        <p className="text-xs opacity-40 mb-4 text-center" style={{ color: "var(--dark)" }}>
+          메모는 일주일 간 유지됩니다!
+        </p>
+
+        <label className="flex items-center gap-2 mb-4 cursor-pointer select-none w-fit">
+          <input
+            type="checkbox"
+            checked={isAnonymous}
+            onChange={(e) => setIsAnonymous(e.target.checked)}
+            className="w-4 h-4 rounded accent-[var(--dark)] cursor-pointer"
+          />
+          <span className="text-sm font-medium opacity-60" style={{ color: "var(--dark)" }}>익명으로 뿌리기</span>
+        </label>
 
         <button
           className="btn-chunky w-full font-display font-black py-4 rounded-2xl text-lg"

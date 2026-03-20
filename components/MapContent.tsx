@@ -55,14 +55,14 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
     return () => navigator.geolocation.clearWatch(watcher);
   }, []);
 
-  const handleAddMemo = useCallback(async (text: string, color: string) => {
+  const handleAddMemo = useCallback(async (text: string, color: string, isAnonymous: boolean) => {
     if (!map || !profile || !user) return;
     const center = map.getCenter();
     if (!center) return;
 
     const { data } = await supabase
       .from("gmepu_memos")
-      .insert({ text, color, lat: center.lat(), lng: center.lng(), nickname: profile.nickname, user_id: user.id, likes: 0 })
+      .insert({ text, color, lat: center.lat(), lng: center.lng(), nickname: isAnonymous ? "익명" : profile.nickname, user_id: user.id, likes: 0 })
       .select()
       .single();
 
