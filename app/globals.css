@@ -55,3 +55,18 @@ body {
   cursor: pointer;
   opacity: 0.85;
 }
+
+/* 채팅방 패널: 모바일 하단 / 데스크탑 좌측 */
+.chat-panel {
+  position: fixed;
+  z-index: 40;
+  bottom: 0; left: 0; right: 0;
+  height: 62vh;
+}
+@media (min-width: 768px) {
+  .chat-panel {
+    top: 0; left: 0; right: auto; bottom: 0;
+    width: 340px;
+    height: 100%;
+  }
+}

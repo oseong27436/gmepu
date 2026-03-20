@@ -354,32 +354,41 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
               position={{ lat: memo.lat, lng: memo.lng }}
               onClick={() => setSelectedMemo(memo)}
             >
+              {/* 포스트잇 아이콘 — 텍스트 숨김, 클릭해야 내용 공개 */}
               <div
-                className="memo-card px-2.5 py-2 text-xs font-medium leading-snug cursor-pointer relative"
+                className="memo-card cursor-pointer relative"
                 style={{
+                  width: 36,
+                  height: 36,
                   background: bgColor,
-                  borderRadius,
+                  borderRadius: "4px 10px 4px 4px",
                   filter: filter + fireGlow,
                   opacity,
-                  maxWidth: "110px",
                   transform: `rotate(${rot})`,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  gap: 4,
+                  padding: "7px 7px",
+                  // 접힌 모서리
+                  clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%)",
                 }}
               >
-                <p className="line-clamp-2">{memo.text}</p>
-                <div style={{ position: "absolute", bottom: "-7px", left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `7px solid ${bgColor}` }} />
+                {/* 텍스트 줄 암시 */}
+                <div style={{ height: 2, borderRadius: 2, background: "rgba(26,19,6,0.2)" }} />
+                <div style={{ height: 2, borderRadius: 2, background: "rgba(26,19,6,0.2)", width: "70%" }} />
+                <div style={{ height: 2, borderRadius: 2, background: "rgba(26,19,6,0.2)", width: "50%" }} />
+                {/* 꼬리 */}
+                <div style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `6px solid ${bgColor}` }} />
+                {/* 🔥 배지 */}
                 {isHot && (
                   <div style={{
-                    position: "absolute",
-                    top: -8, right: -8,
-                    background: "#FF6B35",
-                    borderRadius: "50%",
-                    width: 20, height: 20,
+                    position: "absolute", top: -7, right: -7,
+                    background: "#FF6B35", borderRadius: "50%",
+                    width: 18, height: 18,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 10,
-                    boxShadow: "0 0 6px rgba(255,107,53,0.7)",
-                  }}>
-                    🔥
-                  </div>
+                    fontSize: 9, boxShadow: "0 0 5px rgba(255,107,53,0.7)",
+                  }}>🔥</div>
                 )}
               </div>
             </AdvancedMarker>
@@ -398,9 +407,9 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
       />
 
       {/* 하단 버튼들 */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3">
         <button
-          className="btn-chunky font-display font-black px-8 py-4 rounded-2xl text-lg"
+          className="btn-chunky font-display font-black px-6 py-4 rounded-2xl text-base"
           style={{ background: "var(--dark)", color: "var(--yellow)" }}
           onClick={() => {
             if (!profile) { onLoginRequired(); return; }
@@ -409,6 +418,15 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           }}
         >
           + 메모 뿌리기
+        </button>
+        {/* 대화방 생성 — 잠금 상태 */}
+        <button
+          className="btn-chunky font-display font-black px-6 py-4 rounded-2xl text-base"
+          style={{ background: "rgba(26,19,6,0.15)", color: "rgba(26,19,6,0.35)", cursor: "not-allowed" }}
+          title="메모를 더 뿌려야 개설할 수 있어요"
+          disabled
+        >
+          🔒 대화방
         </button>
       </div>
       <div className="absolute bottom-8 right-3 flex flex-col gap-2 items-center">
