@@ -358,28 +358,35 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
               <div
                 className="memo-card cursor-pointer relative"
                 style={{
-                  width: 36,
-                  height: 36,
+                  width: 42,
+                  height: 42,
                   background: bgColor,
-                  borderRadius: "4px 10px 4px 4px",
                   filter: filter + fireGlow,
                   opacity,
                   transform: `rotate(${rot})`,
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "center",
-                  gap: 4,
-                  padding: "7px 7px",
-                  // 접힌 모서리
-                  clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%)",
+                  gap: 5,
+                  padding: "10px 10px 10px 9px",
+                  clipPath: "polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%)",
+                  boxShadow: "3px 4px 0 rgba(0,0,0,0.18)",
                 }}
               >
+                {/* 접힌 모서리 삼각형 */}
+                <div style={{
+                  position: "absolute", top: 0, right: 0,
+                  width: 0, height: 0,
+                  borderStyle: "solid",
+                  borderWidth: "12px 12px 0 0",
+                  borderColor: "rgba(0,0,0,0.12) transparent transparent transparent",
+                }} />
                 {/* 텍스트 줄 암시 */}
-                <div style={{ height: 2, borderRadius: 2, background: "rgba(26,19,6,0.2)" }} />
-                <div style={{ height: 2, borderRadius: 2, background: "rgba(26,19,6,0.2)", width: "70%" }} />
-                <div style={{ height: 2, borderRadius: 2, background: "rgba(26,19,6,0.2)", width: "50%" }} />
+                <div style={{ height: 2.5, borderRadius: 2, background: "rgba(26,19,6,0.3)" }} />
+                <div style={{ height: 2.5, borderRadius: 2, background: "rgba(26,19,6,0.3)", width: "75%" }} />
+                <div style={{ height: 2.5, borderRadius: 2, background: "rgba(26,19,6,0.3)", width: "55%" }} />
                 {/* 꼬리 */}
-                <div style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `6px solid ${bgColor}` }} />
+                <div style={{ position: "absolute", bottom: -7, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: `7px solid ${bgColor}` }} />
                 {/* 🔥 배지 */}
                 {isHot && (
                   <div style={{
