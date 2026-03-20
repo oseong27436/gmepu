@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
 import { supabase, type GmepuMemo, type UserProfile } from "@/lib/supabase";
 import { AddMemoSheet, MemoDetailSheet } from "@/components/MemoSheet";
@@ -23,6 +23,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
   const [showMyMemos, setShowMyMemos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const hasInitialPanned = useRef(false);
 
   // 메모 로드
   useEffect(() => {
@@ -54,6 +55,13 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
     );
     return () => navigator.geolocation.clearWatch(watcher);
   }, []);
+
+  // 첫 위치 확인 시 지도 이동
+  useEffect(() => {
+    if (!map || !userPos || hasInitialPanned.current) return;
+    hasInitialPanned.current = true;
+    map.panTo(userPos);
+  }, [map, userPos]);
 
   const handleAddMemo = useCallback(async (text: string, color: string, isAnonymous: boolean) => {
     if (!map || !profile || !user) return;
