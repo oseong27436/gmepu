@@ -70,6 +70,7 @@ export default function MapPage() {
           <MapContent
             user={session?.user ?? null}
             profile={profile}
+            avatarUrl={session?.user?.user_metadata?.avatar_url ?? null}
             onLoginRequired={() => setShowLoginModal(true)}
           />
         </APIProvider>

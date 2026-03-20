@@ -74,10 +74,11 @@ function clusterMemos(memos: GmepuMemo[], zoom: number): Cluster[] {
 interface Props {
   user: { id: string } | null;
   profile: UserProfile | null;
+  avatarUrl: string | null;
   onLoginRequired: () => void;
 }
 
-export default function MapContent({ user, profile, onLoginRequired }: Props) {
+export default function MapContent({ user, profile, avatarUrl, onLoginRequired }: Props) {
   const map = useMap();
   const [memos, setMemos] = useState<GmepuMemo[]>([]);
   const [selectedMemo, setSelectedMemo] = useState<GmepuMemo | null>(null);
@@ -386,6 +387,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
 
       <MapHeader
         profile={profile}
+        avatarUrl={avatarUrl}
         onMyMemos={() => setShowMyMemos(true)}
         onLoginRequired={onLoginRequired}
         activeFilter={activeFilter}
