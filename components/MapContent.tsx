@@ -317,7 +317,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: isNear ? "11px" : "13px",
+                  fontSize: isNear ? "16px" : "13px",
                   fontWeight: "900",
                   color: "white",
                   textShadow: "0 1px 3px rgba(0,0,0,0.5)",
