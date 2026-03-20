@@ -51,6 +51,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
   const [showMyMemos, setShowMyMemos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [heading, setHeading] = useState<number | null>(null);
   const [zoom, setZoom] = useState(15);
   const hasInitialPanned = useRef(false);
 
@@ -91,6 +92,27 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
     hasInitialPanned.current = true;
     map.panTo(userPos);
   }, [map, userPos]);
+
+  // 방향 감지 (Android: 자동, iOS: enableHeading() 호출 필요)
+  const enableHeading = useCallback(() => {
+    const handler = (e: DeviceOrientationEvent) => {
+      const ext = e as DeviceOrientationEvent & { webkitCompassHeading?: number };
+      if (ext.webkitCompassHeading != null) {
+        setHeading(ext.webkitCompassHeading); // iOS
+      } else if (e.absolute && e.alpha != null) {
+        setHeading((360 - e.alpha) % 360); // Android
+      }
+    };
+    const DOE = DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> };
+    if (typeof DOE.requestPermission === "function") {
+      DOE.requestPermission().then((state) => {
+        if (state === "granted") window.addEventListener("deviceorientation", handler);
+      });
+    } else {
+      window.addEventListener("deviceorientationabsolute" as "deviceorientation", handler, true);
+      window.addEventListener("deviceorientation", handler);
+    }
+  }, []);
 
   // 줌 레벨 추적
   useEffect(() => {
@@ -147,17 +169,72 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
         restriction={MAP_RESTRICTION}
         className="w-full h-full"
       >
-        {/* 내 위치 마커 */}
-        {userPos && profile && (
+        {/* 내 위치 마커 — 파란 점 */}
+        {userPos && (
           <AdvancedMarker position={userPos}>
-            <div className="flex flex-col items-center">
-              <div
-                className="font-bold px-3 py-1.5 rounded-full text-xs border-2 shadow-lg whitespace-nowrap"
-                style={{ background: "var(--yellow)", borderColor: "var(--dark)", color: "var(--dark)" }}
-              >
-                {profile.nickname}
-              </div>
-              <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "7px solid var(--dark)" }} />
+            <div style={{ position: "relative", width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {/* 방향 콘 */}
+              {heading !== null && (
+                <div style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transform: `rotate(${heading}deg)`,
+                  transformOrigin: "center",
+                }}>
+                  <div style={{
+                    position: "absolute",
+                    bottom: "50%",
+                    left: "50%",
+                    marginLeft: -18,
+                    width: 36,
+                    height: 44,
+                    background: "rgba(66,133,244,0.22)",
+                    clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
+                    transformOrigin: "bottom center",
+                  }} />
+                </div>
+              )}
+              {/* 정확도 링 */}
+              <div style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: "50%",
+                background: "rgba(66,133,244,0.15)",
+              }} />
+              {/* 파란 점 */}
+              <div style={{
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                background: "#4285F4",
+                border: "2.5px solid white",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                zIndex: 1,
+                flexShrink: 0,
+              }} />
+              {/* 닉네임 라벨 (로그인 시) */}
+              {profile && (
+                <div style={{
+                  position: "absolute",
+                  bottom: "calc(100% + 4px)",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  background: "white",
+                  border: "1.5px solid #4285F4",
+                  borderRadius: 6,
+                  padding: "2px 8px",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "var(--dark)",
+                  whiteSpace: "nowrap",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+                }}>
+                  {profile.nickname}
+                </div>
+              )}
             </div>
           </AdvancedMarker>
         )}
@@ -257,7 +334,18 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
           + 메모 뿌리기
         </button>
       </div>
-      <div className="absolute bottom-8 right-4">
+      <div className="absolute bottom-8 right-4 flex flex-col gap-2">
+        <button
+          className="btn-chunky w-14 h-14 rounded-2xl text-xl flex items-center justify-center"
+          style={{
+            background: heading !== null ? "#4285F4" : "white",
+            color: heading !== null ? "white" : "var(--dark)",
+          }}
+          onClick={enableHeading}
+          title="방향 감지"
+        >
+          🧭
+        </button>
         <button
           className="btn-chunky w-14 h-14 rounded-2xl text-xl flex items-center justify-center"
           style={{ background: "white", color: "var(--dark)" }}
