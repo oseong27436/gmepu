@@ -285,7 +285,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
           // 줌인할수록 도트가 커짐 — 커버하는 지리적 넓이를 시각적으로 채우는 효과
           const zoomScale = Math.pow(1.3, Math.max(0, zoom - 12));
           const baseSize = isNear
-            ? Math.round((22 + intensity * 20) * Math.pow(1.6, zoom - 16))  // zoom 17→×1.6, 18→×2.56
+            ? Math.round((30 + intensity * 26) * Math.pow(1.6, zoom - 16))  // zoom 17→×1.6, 18→×2.56
             : Math.round(Math.min((18 + intensity * 26) * zoomScale, 130));
           const size = baseSize;
 
