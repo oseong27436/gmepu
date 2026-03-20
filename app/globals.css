@@ -11,11 +11,13 @@
   --pink: #FFB3D9;
   --orange: #FF9A3C;
   --dark: #1A1306;
+  color-scheme: light;
 }
 
 body {
   font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
   color: var(--dark);
+  background: white;
 }
 
 .font-display {
