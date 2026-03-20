@@ -39,3 +39,13 @@ body {
   transform: translateY(3px);
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
 }
+
+@keyframes glow-pulse {
+  0%, 100% { transform: scale(1);    opacity: 0.85; }
+  50%       { transform: scale(1.25); opacity: 1;    }
+}
+.glow-marker {
+  border-radius: 50%;
+  animation: glow-pulse var(--glow-dur, 2s) ease-in-out infinite;
+  cursor: pointer;
+}

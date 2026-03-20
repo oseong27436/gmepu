@@ -9,6 +9,34 @@ import { MAP_ID, KOREA_CENTER, MAP_RESTRICTION } from "@/lib/mapConstants";
 import MapHeader from "@/components/MapHeader";
 import MyMemoPanel from "@/components/MyMemoPanel";
 
+// zoom >= 이 값이면 개별 핀 표시, 미만이면 클러스터 글로우 표시
+const SHOW_PINS_ZOOM = 15;
+
+interface Cluster {
+  lat: number;
+  lng: number;
+  count: number;
+  memos: GmepuMemo[];
+}
+
+function clusterMemos(memos: GmepuMemo[], zoom: number): Cluster[] {
+  const gridDeg = 0.1 * Math.pow(2, 14 - zoom);
+  const cells: Record<string, GmepuMemo[]> = {};
+
+  for (const memo of memos) {
+    const key = `${Math.floor(memo.lat / gridDeg)},${Math.floor(memo.lng / gridDeg)}`;
+    if (!cells[key]) cells[key] = [];
+    cells[key].push(memo);
+  }
+
+  return Object.values(cells).map((group: GmepuMemo[]) => ({
+    lat: group.reduce((s: number, m: GmepuMemo) => s + m.lat, 0) / group.length,
+    lng: group.reduce((s: number, m: GmepuMemo) => s + m.lng, 0) / group.length,
+    count: group.length,
+    memos: group,
+  }));
+}
+
 interface Props {
   user: { id: string } | null;
   profile: UserProfile | null;
@@ -23,6 +51,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
   const [showMyMemos, setShowMyMemos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [zoom, setZoom] = useState(15);
   const hasInitialPanned = useRef(false);
 
   // 메모 로드
@@ -63,6 +92,15 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
     map.panTo(userPos);
   }, [map, userPos]);
 
+  // 줌 레벨 추적
+  useEffect(() => {
+    if (!map) return;
+    const listener = map.addListener("zoom_changed", () => {
+      setZoom(map.getZoom() ?? 15);
+    });
+    return () => google.maps.event.removeListener(listener);
+  }, [map]);
+
   const handleAddMemo = useCallback(async (text: string, isAnonymous: boolean) => {
     if (!map || !profile || !user) return;
     const center = map.getCenter();
@@ -87,7 +125,15 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
     });
   };
 
+  const handleClusterClick = (cluster: Cluster) => {
+    if (!map) return;
+    map.panTo({ lat: cluster.lat, lng: cluster.lng });
+    map.setZoom(Math.min((map.getZoom() ?? zoom) + 3, SHOW_PINS_ZOOM));
+  };
+
   const myMemos = user ? memos.filter((m) => m.user_id === user.id) : [];
+  const showPins = zoom >= SHOW_PINS_ZOOM;
+  const clusters = showPins ? [] : clusterMemos(memos, zoom);
 
   return (
     <>
@@ -116,8 +162,52 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
           </AdvancedMarker>
         )}
 
-        {/* 메모 핀들 */}
-        {memos.map((memo) => {
+        {/* 클러스터 글로우 (줌 아웃 시) */}
+        {!showPins && clusters.map((cluster, i) => {
+          // log 스케일로 밀도 강도 계산 (1개=0, 10개≈1)
+          const intensity = Math.min(Math.log2(cluster.count + 1) / Math.log2(11), 1);
+          const size = Math.round(22 + intensity * 28); // 22px ~ 50px
+
+          // 노란 → 주황 → 붉은주황
+          const r = 255;
+          const g = Math.round(220 - intensity * 110);
+          const b = Math.round(40 - intensity * 40);
+          const color = `rgb(${r},${g},${b})`;
+          const glowSpread = Math.round(6 + intensity * 18);
+          const glowAlpha = 0.35 + intensity * 0.35;
+          const animDur = (2 - intensity * 0.8).toFixed(1); // 2s → 1.2s (핫할수록 빠름)
+
+          return (
+            <AdvancedMarker
+              key={`cluster-${i}`}
+              position={{ lat: cluster.lat, lng: cluster.lng }}
+              onClick={() => handleClusterClick(cluster)}
+            >
+              <div
+                className="glow-marker"
+                style={{
+                  width: size,
+                  height: size,
+                  background: color,
+                  boxShadow: `0 0 ${glowSpread}px ${Math.round(glowSpread / 2)}px rgba(${r},${g},${b},${glowAlpha})`,
+                  ["--glow-dur" as string]: `${animDur}s`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "11px",
+                  fontWeight: "900",
+                  color: "white",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+                }}
+              >
+                {cluster.count > 1 ? cluster.count : ""}
+              </div>
+            </AdvancedMarker>
+          );
+        })}
+
+        {/* 개별 메모 핀 (줌 인 시) */}
+        {showPins && memos.map((memo) => {
           const { bgColor, borderRadius, filter, opacity } = getMemoAgeStyle(memo.created_at);
           const rot = parseInt(memo.id[0], 16) % 2 === 0 ? "2deg" : "-2deg";
           return (
