@@ -303,7 +303,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
 
         {/* 클러스터 메모 아이콘 */}
         {!showPins && clusters.map((cluster, i) => {
-          const intensity = Math.min(Math.log10(cluster.count + 1) / 3, 1);
+          const intensity = Math.min(Math.sqrt(cluster.count) / 10, 1);
           const isNear = zoom >= 17;
 
           // 노랑 → 주황 → 빨강
