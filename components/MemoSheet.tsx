@@ -1,22 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MEMO_COLORS } from "./MemoPin";
 import { supabase, REACTION_EMOJIS, type GmepuMemo, type GmepuReply } from "@/lib/supabase";
+import { getMemoAgeStyle } from "@/lib/utils";
 
 interface MemoSheetProps {
-  onSubmit: (text: string, color: string, isAnonymous: boolean) => void;
+  onSubmit: (text: string, isAnonymous: boolean) => void;
   onClose: () => void;
 }
 
 export function AddMemoSheet({ onSubmit, onClose }: MemoSheetProps) {
   const [text, setText] = useState("");
-  const [selectedColor, setSelectedColor] = useState(MEMO_COLORS[0]);
   const [isAnonymous, setIsAnonymous] = useState(false);
 
   const handleSubmit = () => {
     if (!text.trim()) return;
-    onSubmit(text.trim(), selectedColor, isAnonymous);
+    onSubmit(text.trim(), isAnonymous);
     setText("");
   };
 
@@ -36,22 +35,7 @@ export function AddMemoSheet({ onSubmit, onClose }: MemoSheetProps) {
           여기에 메모 남기기 ✏️
         </h2>
 
-        <div className="flex gap-2 mb-4">
-          {MEMO_COLORS.map((color) => (
-            <button
-              key={color}
-              className="w-8 h-8 rounded-md border-2 transition-transform"
-              style={{
-                background: color,
-                borderColor: selectedColor === color ? "var(--dark)" : "transparent",
-                transform: selectedColor === color ? "scale(1.2)" : "scale(1)",
-              }}
-              onClick={() => setSelectedColor(color)}
-            />
-          ))}
-        </div>
-
-        <div className="memo-card p-4 mb-3 rounded-lg" style={{ background: selectedColor }}>
+        <div className="memo-card p-4 mb-3 rounded-lg" style={{ background: "#FFF9B0" }}>
           <textarea
             className="w-full bg-transparent outline-none text-sm font-medium resize-none"
             style={{ color: "var(--dark)", minHeight: "80px" }}
@@ -187,13 +171,21 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
         <div className="w-10 h-1 rounded-full mx-auto mb-5 opacity-30" style={{ background: "var(--dark)" }} />
 
         {/* 메모 카드 */}
-        <div className="memo-card p-5 rounded-lg mb-5" style={{ background: memo.color, rotate: "-1deg" }}>
-          <p className="font-medium text-base leading-relaxed mb-3">{memo.text}</p>
-          <div className="flex items-center justify-between text-xs opacity-60">
-            <span>{memo.nickname}</span>
-            <span>{timeAgo}</span>
-          </div>
-        </div>
+        {(() => {
+          const { bgColor, borderRadius, filter, opacity } = getMemoAgeStyle(memo.created_at);
+          return (
+            <div
+              className="memo-card p-5 mb-5"
+              style={{ background: bgColor, borderRadius, filter, opacity, rotate: "-1deg" }}
+            >
+              <p className="font-medium text-base leading-relaxed mb-3">{memo.text}</p>
+              <div className="flex items-center justify-between text-xs opacity-60">
+                <span>{memo.nickname}</span>
+                <span>{timeAgo}</span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 이모지 반응 */}
         <div className="flex gap-2 mb-5 flex-wrap">

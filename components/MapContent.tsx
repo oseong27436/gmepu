@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
 import { supabase, type GmepuMemo, type UserProfile } from "@/lib/supabase";
 import { AddMemoSheet, MemoDetailSheet } from "@/components/MemoSheet";
-import { timeAgo } from "@/lib/utils";
+import { timeAgo, getMemoAgeStyle } from "@/lib/utils";
 import { MAP_ID, KOREA_CENTER, MAP_RESTRICTION } from "@/lib/mapConstants";
 import MapHeader from "@/components/MapHeader";
 import MyMemoPanel from "@/components/MyMemoPanel";
@@ -63,14 +63,14 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
     map.panTo(userPos);
   }, [map, userPos]);
 
-  const handleAddMemo = useCallback(async (text: string, color: string, isAnonymous: boolean) => {
+  const handleAddMemo = useCallback(async (text: string, isAnonymous: boolean) => {
     if (!map || !profile || !user) return;
     const center = map.getCenter();
     if (!center) return;
 
     const { data } = await supabase
       .from("gmepu_memos")
-      .insert({ text, color, lat: center.lat(), lng: center.lng(), nickname: isAnonymous ? "익명" : profile.nickname, user_id: user.id, likes: 0 })
+      .insert({ text, color: "#FFF9B0", lat: center.lat(), lng: center.lng(), nickname: isAnonymous ? "익명" : profile.nickname, user_id: user.id, likes: 0 })
       .select()
       .single();
 
@@ -117,26 +117,32 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
         )}
 
         {/* 메모 핀들 */}
-        {memos.map((memo) => (
-          <AdvancedMarker
-            key={memo.id}
-            position={{ lat: memo.lat, lng: memo.lng }}
-            onClick={() => setSelectedMemo(memo)}
-          >
-            <div
-              className="memo-card px-2.5 py-2 text-xs font-medium leading-snug cursor-pointer relative"
-              style={{
-                background: memo.color,
-                borderRadius: "4px",
-                maxWidth: "110px",
-                transform: `rotate(${parseInt(memo.id[0], 16) % 2 === 0 ? "2deg" : "-2deg"})`,
-              }}
+        {memos.map((memo) => {
+          const { bgColor, borderRadius, filter, opacity } = getMemoAgeStyle(memo.created_at);
+          const rot = parseInt(memo.id[0], 16) % 2 === 0 ? "2deg" : "-2deg";
+          return (
+            <AdvancedMarker
+              key={memo.id}
+              position={{ lat: memo.lat, lng: memo.lng }}
+              onClick={() => setSelectedMemo(memo)}
             >
-              <p className="line-clamp-2">{memo.text}</p>
-              <div style={{ position: "absolute", bottom: "-7px", left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `7px solid ${memo.color}` }} />
-            </div>
-          </AdvancedMarker>
-        ))}
+              <div
+                className="memo-card px-2.5 py-2 text-xs font-medium leading-snug cursor-pointer relative"
+                style={{
+                  background: bgColor,
+                  borderRadius,
+                  filter,
+                  opacity,
+                  maxWidth: "110px",
+                  transform: `rotate(${rot})`,
+                }}
+              >
+                <p className="line-clamp-2">{memo.text}</p>
+                <div style={{ position: "absolute", bottom: "-7px", left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `7px solid ${bgColor}` }} />
+              </div>
+            </AdvancedMarker>
+          );
+        })}
       </Map>
 
       <MapHeader
