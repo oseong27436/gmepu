@@ -2,13 +2,14 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
-import { supabase, type GmepuMemo, type UserProfile } from "@/lib/supabase";
+import { supabase, type GmepuMemo, type GmepuChatRoom, type UserProfile } from "@/lib/supabase";
 import { AddMemoSheet, MemoDetailSheet } from "@/components/MemoSheet";
 import { timeAgo, getMemoAgeStyle, reverseGeocode } from "@/lib/utils";
 import { MAP_ID, KOREA_CENTER, MAP_RESTRICTION } from "@/lib/mapConstants";
 import MapHeader from "@/components/MapHeader";
 import MyMemoPanel from "@/components/MyMemoPanel";
 import FriendsPanel from "@/components/FriendsPanel";
+import ChatRoomPanel from "@/components/ChatRoomPanel";
 
 // zoom >= 이 값이면 개별 핀 표시
 const SHOW_PINS_ZOOM = 19;
@@ -86,6 +87,8 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showMyMemos, setShowMyMemos] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
+  const [chatRooms, setChatRooms] = useState<GmepuChatRoom[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<GmepuChatRoom | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<"all" | "friends" | "hot">("all");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -111,6 +114,15 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  // 채팅방 로드
+  useEffect(() => {
+    supabase
+      .from("gmepu_chat_rooms")
+      .select("*")
+      .gt("expires_at", new Date().toISOString())
+      .then(({ data }) => { if (data) setChatRooms(data); });
   }, []);
 
   // 현재 위치 추적
@@ -401,6 +413,34 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
             </AdvancedMarker>
           );
         })}
+
+        {/* 채팅방 말풍선 마커 */}
+        {chatRooms.map((room) => (
+          <AdvancedMarker
+            key={room.id}
+            position={{ lat: room.lat, lng: room.lng }}
+            onClick={() => setSelectedRoom(room)}
+          >
+            <div style={{ position: "relative", cursor: "pointer" }}>
+              <div style={{
+                background: "var(--dark)",
+                borderRadius: 12,
+                padding: "7px 10px",
+                display: "flex", alignItems: "center", gap: 5,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+              }}>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="var(--yellow)">
+                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                </svg>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "var(--yellow)", fontFamily: "Nunito", whiteSpace: "nowrap" }}>
+                  {room.name}
+                </span>
+              </div>
+              {/* 꼬리 */}
+              <div style={{ position: "absolute", bottom: -6, left: 16, width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "6px solid var(--dark)" }} />
+            </div>
+          </AdvancedMarker>
+        ))}
       </Map>
 
       <MapHeader
@@ -498,6 +538,16 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           </svg>
         </button>
       </div>
+
+      {selectedRoom && (
+        <ChatRoomPanel
+          room={selectedRoom}
+          userId={user?.id ?? null}
+          userNickname={profile?.nickname ?? null}
+          onClose={() => setSelectedRoom(null)}
+          onLoginRequired={onLoginRequired}
+        />
+      )}
 
       {showFriends && user && (
         <FriendsPanel

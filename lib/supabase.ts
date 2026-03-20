@@ -44,3 +44,13 @@ export interface GmepuReply {
 }
 
 export const REACTION_EMOJIS = ["🔥"] as const;
+
+export interface GmepuChatRoom {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  created_by: string | null;
+  created_at: string;
+  expires_at: string;
+}
