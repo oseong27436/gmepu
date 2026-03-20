@@ -329,51 +329,54 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
               position={{ lat: cluster.lat, lng: cluster.lng }}
               onClick={() => handleClusterClick(cluster)}
             >
-              <div
-                className={isNear ? "near-cluster" : "glow-marker"}
-                style={{
-                  width: size,
-                  height: size,
-                  background: color,
-                  filter: `drop-shadow(0 0 ${glowSpread}px rgba(${r},${Math.max(g,40)},${Math.max(b,0)},${glowAlpha}))`,
-                  ["--glow-dur" as string]: `${animDur}s`,
-                  transform: `rotate(${rot})`,
-                  clipPath: `polygon(0 0, calc(100% - ${cornerSize}px) 0, 100% ${cornerSize}px, 100% 100%, 0 100%)`,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  gap: Math.max(2, Math.round(size * 0.08)),
-                  padding: `${Math.round(size * 0.2)}px ${Math.round(size * 0.18)}px ${Math.round(size * 0.2)}px ${Math.round(size * 0.18)}px`,
-                  cursor: "pointer",
-                  position: "relative",
-                }}
-              >
-                {/* 접힌 모서리 */}
-                <div style={{
-                  position: "absolute", top: 0, right: 0,
-                  width: 0, height: 0,
-                  borderStyle: "solid",
-                  borderWidth: `${cornerSize}px ${cornerSize}px 0 0`,
-                  borderColor: "rgba(0,0,0,0.15) transparent transparent transparent",
-                }} />
-                {/* 텍스트 줄 암시 */}
-                <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)" }} />
-                <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)", width: "75%" }} />
-                <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)", width: "55%" }} />
-                {/* 개수 배지 */}
+              {/* 배지가 잘리지 않도록 패딩 래퍼 */}
+              <div style={{ padding: "10px 10px 0 0", cursor: "pointer", position: "relative" }}>
+                <div
+                  className={isNear ? "near-cluster" : "glow-marker"}
+                  style={{
+                    width: size,
+                    height: size,
+                    background: color,
+                    filter: `drop-shadow(0 0 ${glowSpread}px rgba(${r},${Math.max(g,40)},${Math.max(b,0)},${glowAlpha}))`,
+                    ["--glow-dur" as string]: `${animDur}s`,
+                    transform: `rotate(${rot})`,
+                    clipPath: `polygon(0 0, calc(100% - ${cornerSize}px) 0, 100% ${cornerSize}px, 100% 100%, 0 100%)`,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    gap: Math.max(2, Math.round(size * 0.08)),
+                    padding: `${Math.round(size * 0.2)}px ${Math.round(size * 0.18)}px ${Math.round(size * 0.2)}px ${Math.round(size * 0.18)}px`,
+                    position: "relative",
+                  }}
+                >
+                  {/* 접힌 모서리 */}
+                  <div style={{
+                    position: "absolute", top: 0, right: 0,
+                    width: 0, height: 0,
+                    borderStyle: "solid",
+                    borderWidth: `${cornerSize}px ${cornerSize}px 0 0`,
+                    borderColor: "rgba(0,0,0,0.15) transparent transparent transparent",
+                  }} />
+                  {/* 텍스트 줄 암시 */}
+                  <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)" }} />
+                  <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)", width: "75%" }} />
+                  <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)", width: "55%" }} />
+                </div>
+                {/* 개수 배지 — 래퍼 기준 우상단 */}
                 {cluster.count > 1 && (
                   <div style={{
                     position: "absolute",
-                    top: -8, right: -6,
+                    top: 0, right: 0,
                     background: "var(--dark)",
                     color: color,
                     borderRadius: 99,
-                    padding: "1px 5px",
+                    padding: "1px 6px",
                     fontSize: Math.max(9, Math.round(size * 0.22)),
                     fontWeight: 900,
                     fontFamily: "Nunito, sans-serif",
                     lineHeight: 1.4,
                     boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                    whiteSpace: "nowrap",
                   }}>
                     {cluster.count}
                   </div>
