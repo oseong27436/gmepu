@@ -398,31 +398,50 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
           + 메모 뿌리기
         </button>
       </div>
-      <div className="absolute bottom-8 right-3 flex flex-col gap-2">
-        {/* 나침반 버튼 */}
+      <div className="absolute bottom-8 right-3 flex flex-col gap-2 items-center">
+        {/* 줌 +/- 버튼 */}
+        <div style={{
+          background: "white",
+          borderRadius: 8,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}>
+          <button
+            onClick={() => map?.setZoom(Math.min((map.getZoom() ?? zoom) + 1, 21))}
+            style={{
+              width: 40, height: 40,
+              background: "transparent",
+              border: "none",
+              borderBottom: "1px solid #e0e0e0",
+              cursor: "pointer",
+              fontSize: 22,
+              fontWeight: 300,
+              color: "#444",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              lineHeight: 1,
+            }}
+          >+</button>
+          <button
+            onClick={() => map?.setZoom(Math.max((map.getZoom() ?? zoom) - 1, 3))}
+            style={{
+              width: 40, height: 40,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 22,
+              fontWeight: 300,
+              color: "#444",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              lineHeight: 1,
+            }}
+          >−</button>
+        </div>
+
+        {/* 내 위치 버튼 (탭하면 heading도 활성화) */}
         <button
-          onClick={enableHeading}
-          title="방향 감지"
-          style={{
-            width: 40, height: 40,
-            borderRadius: "50%",
-            background: "white",
-            border: "none",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer",
-            color: heading !== null ? "#4285F4" : "#666",
-          }}
-        >
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M12 4v2M12 18v2M4 12h2M18 12h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            <circle cx="12" cy="12" r="2.5" fill={heading !== null ? "#4285F4" : "currentColor"}/>
-          </svg>
-        </button>
-        {/* 내 위치 버튼 */}
-        <button
-          onClick={goToMyLocation}
+          onClick={() => { goToMyLocation(); enableHeading(); }}
           title="내 위치"
           style={{
             width: 40, height: 40,
@@ -432,13 +451,12 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
             boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer",
-            color: "#666",
           }}
         >
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-            <circle cx="12" cy="12" r="3.5" fill="#4285F4"/>
-            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#4285F4" strokeWidth="2" strokeLinecap="round"/>
-            <circle cx="12" cy="12" r="8" stroke="#4285F4" strokeWidth="1.5" strokeOpacity="0.4"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke={heading !== null ? "#4285F4" : "#666"} strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="12" cy="12" r="4" fill={heading !== null ? "#4285F4" : "#666"}/>
+            <circle cx="12" cy="12" r="9" stroke={heading !== null ? "#4285F4" : "#999"} strokeWidth="1.5"/>
           </svg>
         </button>
       </div>
