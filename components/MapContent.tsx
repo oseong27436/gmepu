@@ -306,14 +306,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
                   textShadow: "0 1px 3px rgba(0,0,0,0.5)",
                 }}
               >
-                <div style={{ lineHeight: 1.1, textAlign: "center" }}>
-                  {cluster.count > 1 && <div>{cluster.count}</div>}
-                  {cluster.label && (
-                    <div style={{ fontSize: 9, opacity: 0.85, marginTop: cluster.count > 1 ? 1 : 0 }}>
-                      {cluster.label}
-                    </div>
-                  )}
-                </div>
+                {cluster.count > 1 ? cluster.count : ""}
               </div>
             </AdvancedMarker>
           );
