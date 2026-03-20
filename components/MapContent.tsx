@@ -84,6 +84,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showMyMemos, setShowMyMemos] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<"all" | "friends" | "hot">("all");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
   const [zoom, setZoom] = useState(15);
@@ -192,8 +193,15 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
   };
 
   const myMemos = user ? memos.filter((m) => m.user_id === user.id) : [];
+
+  const filteredMemos = activeFilter === "hot"
+    ? memos.filter((m) => (m.fire_count ?? 0) >= 5)
+    : activeFilter === "friends"
+      ? [] // 친구 기능 준비 중
+      : memos;
+
   const showPins = zoom >= SHOW_PINS_ZOOM;
-  const clusters = showPins ? [] : clusterMemos(memos, zoom);
+  const clusters = showPins ? [] : clusterMemos(filteredMemos, zoom);
 
   return (
     <>
@@ -330,7 +338,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
         })}
 
         {/* 개별 메모 핀 (줌 인 시) */}
-        {showPins && memos.map((memo) => {
+        {showPins && filteredMemos.map((memo) => {
           const { bgColor, borderRadius, filter, opacity } = getMemoAgeStyle(memo.created_at);
           const rot = parseInt(memo.id[0], 16) % 2 === 0 ? "2deg" : "-2deg";
           const isHot = (memo.fire_count ?? 0) >= 10;
@@ -378,10 +386,10 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
 
       <MapHeader
         profile={profile}
-        memoCount={memos.length}
-        loading={loading}
         onMyMemos={() => setShowMyMemos(true)}
         onLoginRequired={onLoginRequired}
+        activeFilter={activeFilter}
+        onFilterChange={setActiveFilter}
       />
 
       {/* 하단 버튼들 */}
