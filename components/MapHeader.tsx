@@ -10,6 +10,7 @@ interface Props {
   profile: UserProfile | null;
   avatarUrl: string | null;
   onMyMemos: () => void;
+  onFriends: () => void;
   onLoginRequired: () => void;
   activeFilter: FilterType;
   onFilterChange: (filter: FilterType) => void;
@@ -21,7 +22,7 @@ const FILTERS: { key: FilterType; label: string }[] = [
   { key: "hot", label: "🔥 핫" },
 ];
 
-export default function MapHeader({ profile, avatarUrl, onMyMemos, onLoginRequired, activeFilter, onFilterChange }: Props) {
+export default function MapHeader({ profile, avatarUrl, onMyMemos, onFriends, onLoginRequired, activeFilter, onFilterChange }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -92,17 +93,15 @@ export default function MapHeader({ profile, avatarUrl, onMyMemos, onLoginRequir
               overflow: "hidden",
               minWidth: 140,
             }}>
-              <button
-                onClick={() => { onMyMemos(); setMenuOpen(false); }}
-                style={menuItemStyle}
-              >
+              <button onClick={() => { onMyMemos(); setMenuOpen(false); }} style={menuItemStyle}>
                 📋 내 메모
               </button>
               <div style={{ height: 1, background: "#f0f0f0" }} />
-              <button
-                onClick={() => { signOut(); setMenuOpen(false); }}
-                style={{ ...menuItemStyle, color: "#e53e3e" }}
-              >
+              <button onClick={() => { onFriends(); setMenuOpen(false); }} style={menuItemStyle}>
+                👥 친구 관리
+              </button>
+              <div style={{ height: 1, background: "#f0f0f0" }} />
+              <button onClick={() => { signOut(); setMenuOpen(false); }} style={{ ...menuItemStyle, color: "#e53e3e" }}>
                 로그아웃
               </button>
             </div>

@@ -8,6 +8,7 @@ import { timeAgo, getMemoAgeStyle, reverseGeocode } from "@/lib/utils";
 import { MAP_ID, KOREA_CENTER, MAP_RESTRICTION } from "@/lib/mapConstants";
 import MapHeader from "@/components/MapHeader";
 import MyMemoPanel from "@/components/MyMemoPanel";
+import FriendsPanel from "@/components/FriendsPanel";
 
 // zoom >= 이 값이면 개별 핀 표시
 const SHOW_PINS_ZOOM = 19;
@@ -84,6 +85,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
   const [selectedMemo, setSelectedMemo] = useState<GmepuMemo | null>(null);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showMyMemos, setShowMyMemos] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<"all" | "friends" | "hot">("all");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -389,6 +391,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
         profile={profile}
         avatarUrl={avatarUrl}
         onMyMemos={() => setShowMyMemos(true)}
+        onFriends={() => setShowFriends(true)}
         onLoginRequired={onLoginRequired}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
@@ -470,6 +473,13 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           </svg>
         </button>
       </div>
+
+      {showFriends && user && (
+        <FriendsPanel
+          userId={user.id}
+          onClose={() => setShowFriends(false)}
+        />
+      )}
 
       {showMyMemos && profile && (
         <MyMemoPanel
