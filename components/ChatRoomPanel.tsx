@@ -106,16 +106,26 @@ export default function ChatRoomPanel({ room, userId, userNickname, isOpen, onCl
   const expiresIn = Math.max(0, Math.round((new Date(room.expires_at).getTime() - Date.now()) / 3600000));
 
   return (
-    <div
-      className="chat-panel flex flex-col"
-      style={{ transform: isOpen ? "translateX(0)" : "translateX(-100%)" }}
-    >
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--dark)" }}>
+    <>
+      {/* 모바일 배경 오버레이 */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30 md:hidden"
+          style={{ background: "rgba(0,0,0,0.4)" }}
+          onClick={onClose}
+        />
+      )}
+
+    <div className={`chat-panel flex flex-col${isOpen ? "" : " closed"}`}>
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ background: "var(--dark)", borderRadius: "16px 16px 0 0" }}>
+
+        {/* 모바일 핸들 */}
+        <div className="md:hidden w-10 h-1 rounded-full mx-auto mt-3 mb-1 opacity-20" style={{ background: "white" }} />
 
         {/* 헤더 */}
         <div
-          className="flex items-center justify-between px-5 pb-4"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", paddingTop: "env(safe-area-inset-top, 52px)", minHeight: 80 }}
+          className="flex items-center justify-between px-5 pb-4 pt-4 md:pt-14"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
         >
           <div>
             <div className="flex items-center gap-2">
@@ -227,5 +237,6 @@ export default function ChatRoomPanel({ room, userId, userNickname, isOpen, onCl
         </div>
       </div>
     </div>
+    </>
   );
 }

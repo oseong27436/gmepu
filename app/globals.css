@@ -56,16 +56,24 @@ body {
   opacity: 0.85;
 }
 
-/* 채팅방 패널: 항상 왼쪽 슬라이드 */
+/* 채팅방 패널: 모바일=아래서 위 / 데스크탑=왼쪽 슬라이드 */
 .chat-panel {
   position: fixed;
-  top: 0; left: 0; bottom: 0;
-  width: 320px;
+  bottom: 0; left: 0; right: 0;
+  height: 65vh;
   z-index: 40;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+.chat-panel.closed {
+  transform: translateY(100%) !important;
+}
 @media (min-width: 768px) {
   .chat-panel {
+    top: 0; left: 0; right: auto; bottom: 0;
     width: 340px;
+    height: 100%;
+  }
+  .chat-panel.closed {
+    transform: translateX(-100%) !important;
   }
 }
