@@ -49,3 +49,9 @@ body {
   animation: glow-pulse var(--glow-dur, 2s) ease-in-out infinite;
   cursor: pointer;
 }
+/* zoom 17~18: 애니메이션 없는 작은 도트 */
+.near-cluster {
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.85;
+}

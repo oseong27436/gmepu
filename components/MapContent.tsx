@@ -9,8 +9,8 @@ import { MAP_ID, KOREA_CENTER, MAP_RESTRICTION } from "@/lib/mapConstants";
 import MapHeader from "@/components/MapHeader";
 import MyMemoPanel from "@/components/MyMemoPanel";
 
-// zoom >= 이 값이면 개별 핀 표시, 미만이면 클러스터 글로우 표시
-const SHOW_PINS_ZOOM = 17;
+// zoom >= 이 값이면 개별 핀 표시
+const SHOW_PINS_ZOOM = 19;
 
 interface Cluster {
   lat: number;
@@ -21,19 +21,28 @@ interface Cluster {
 }
 
 function getAdminKey(memo: GmepuMemo, zoom: number): string {
-  // 행정구역 데이터 있으면 그걸로, 없으면 격자 폴백
   if (zoom < 10) {
+    // 시도 단위
     return memo.sido ?? `grid:${Math.floor(memo.lat / 1.5)},${Math.floor(memo.lng / 1.5)}`;
   }
   if (zoom < 14) {
+    // 시군구 단위
     return memo.sigungu
       ? `${memo.sido}/${memo.sigungu}`
       : `grid:${Math.floor(memo.lat / 0.12)},${Math.floor(memo.lng / 0.12)}`;
   }
-  // zoom 14~16: 동 단위
-  return memo.dong
-    ? `${memo.sigungu}/${memo.dong}`
-    : `grid:${Math.floor(memo.lat / 0.03)},${Math.floor(memo.lng / 0.03)}`;
+  if (zoom < 17) {
+    // 동 단위
+    return memo.dong
+      ? `${memo.sigungu}/${memo.dong}`
+      : `grid:${Math.floor(memo.lat / 0.03)},${Math.floor(memo.lng / 0.03)}`;
+  }
+  if (zoom < 18) {
+    // ~300m 격자 (zoom 17, 50m 눈금 단계)
+    return `grid:${Math.floor(memo.lat / 0.003)},${Math.floor(memo.lng / 0.003)}`;
+  }
+  // ~100m 격자 (zoom 18, 20m 눈금 단계)
+  return `grid:${Math.floor(memo.lat / 0.001)},${Math.floor(memo.lng / 0.001)}`;
 }
 
 function clusterMemos(memos: GmepuMemo[], zoom: number): Cluster[] {
@@ -268,21 +277,26 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
           </AdvancedMarker>
         )}
 
-        {/* 클러스터 글로우 (줌 아웃 시) */}
+        {/* 클러스터 도트 */}
         {!showPins && clusters.map((cluster, i) => {
-          // log 스케일로 밀도 강도 계산 (1개=0, 10개≈1)
-          // 개수 기반 log10 스케일: 1→저, 10→중, 100→고, 1000→최대
           const intensity = Math.min(Math.log10(cluster.count + 1) / 3, 1);
-          const size = Math.round(22 + intensity * 32); // 22px ~ 54px
 
-          // 노랑(#FFE234) → 주황 → 빨강: 개수가 많을수록 뜨거운 색
+          // zoom 17~18: 작고 조용한 도트 / zoom < 17: 큰 글로우 도트
+          const isNear = zoom >= 17;
+          const size = isNear
+            ? Math.round(12 + intensity * 14)   // 12px ~ 26px (작은 도트)
+            : Math.round(22 + intensity * 32);   // 22px ~ 54px (큰 글로우)
+
+          // 노랑 → 주황 → 빨강
           const r = 255;
-          const g = Math.round(220 - intensity * 180); // 220 → 40
-          const b = Math.round(30 - intensity * 30);   // 30 → 0
+          const g = Math.round(220 - intensity * 180);
+          const b = Math.round(30 - intensity * 30);
           const color = `rgb(${r},${Math.max(g, 40)},${Math.max(b, 0)})`;
-          const glowSpread = Math.round(4 + intensity * 10);
-          const glowAlpha = 0.18 + intensity * 0.22;
-          const animDur = (2.2 - intensity * 1.2).toFixed(1); // 2.2s → 1.0s
+          const glowSpread = isNear
+            ? Math.round(2 + intensity * 4)      // 글로우 거의 없음
+            : Math.round(4 + intensity * 10);
+          const glowAlpha = isNear ? 0.15 : 0.18 + intensity * 0.22;
+          const animDur = isNear ? "0" : (2.2 - intensity * 1.2).toFixed(1); // 가까우면 애니메이션 끔
 
           return (
             <AdvancedMarker
@@ -291,17 +305,17 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
               onClick={() => handleClusterClick(cluster)}
             >
               <div
-                className="glow-marker"
+                className={isNear ? "near-cluster" : "glow-marker"}
                 style={{
                   width: size,
                   height: size,
                   background: color,
-                  boxShadow: `0 0 ${glowSpread}px ${Math.round(glowSpread / 2)}px rgba(${r},${g},${b},${glowAlpha})`,
+                  boxShadow: `0 0 ${glowSpread}px ${Math.round(glowSpread / 2)}px rgba(${r},${Math.max(g,40)},${Math.max(b,0)},${glowAlpha})`,
                   ["--glow-dur" as string]: `${animDur}s`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "11px",
+                  fontSize: isNear ? "9px" : "11px",
                   fontWeight: "900",
                   color: "white",
                   textShadow: "0 1px 3px rgba(0,0,0,0.5)",
