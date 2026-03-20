@@ -1,3 +1,22 @@
+export async function reverseGeocode(lat: number, lng: number): Promise<{ sido: string | null; sigungu: string | null; dong: string | null }> {
+  try {
+    const geocoder = new google.maps.Geocoder();
+    const result = await geocoder.geocode({ location: { lat, lng }, language: "ko" });
+    const components = result.results[0]?.address_components ?? [];
+
+    const get = (type: string) =>
+      components.find((c) => c.types.includes(type))?.long_name ?? null;
+
+    return {
+      sido:    get("administrative_area_level_1"),
+      sigungu: get("administrative_area_level_2"),
+      dong:    get("sublocality_level_2") ?? get("sublocality_level_1"),
+    };
+  } catch {
+    return { sido: null, sigungu: null, dong: null };
+  }
+}
+
 export function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);

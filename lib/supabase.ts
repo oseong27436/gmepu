@@ -19,8 +19,10 @@ export interface GmepuMemo {
   color: string;
   lat: number;
   lng: number;
-  likes: number;
   created_at: string;
+  sido: string | null;
+  sigungu: string | null;
+  dong: string | null;
 }
 
 export interface GmepuReaction {

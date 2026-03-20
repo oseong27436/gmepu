@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
 import { supabase, type GmepuMemo, type UserProfile } from "@/lib/supabase";
 import { AddMemoSheet, MemoDetailSheet } from "@/components/MemoSheet";
-import { timeAgo, getMemoAgeStyle } from "@/lib/utils";
+import { timeAgo, getMemoAgeStyle, reverseGeocode } from "@/lib/utils";
 import { MAP_ID, KOREA_CENTER, MAP_RESTRICTION } from "@/lib/mapConstants";
 import MapHeader from "@/components/MapHeader";
 import MyMemoPanel from "@/components/MyMemoPanel";
@@ -17,28 +17,49 @@ interface Cluster {
   lng: number;
   count: number;
   memos: GmepuMemo[];
+  label?: string;
+}
+
+function getAdminKey(memo: GmepuMemo, zoom: number): string {
+  // 행정구역 데이터 있으면 그걸로, 없으면 격자 폴백
+  if (zoom < 10) {
+    return memo.sido ?? `grid:${Math.floor(memo.lat / 1.5)},${Math.floor(memo.lng / 1.5)}`;
+  }
+  if (zoom < 14) {
+    return memo.sigungu
+      ? `${memo.sido}/${memo.sigungu}`
+      : `grid:${Math.floor(memo.lat / 0.12)},${Math.floor(memo.lng / 0.12)}`;
+  }
+  // zoom 14~16: 동 단위
+  return memo.dong
+    ? `${memo.sigungu}/${memo.dong}`
+    : `grid:${Math.floor(memo.lat / 0.03)},${Math.floor(memo.lng / 0.03)}`;
 }
 
 function clusterMemos(memos: GmepuMemo[], zoom: number): Cluster[] {
-  // SHOW_PINS_ZOOM 기준으로 스케일:
-  // zoom 16 ≈ 0.03° (동 단위 ~3km)
-  // zoom 14 ≈ 0.12° (구 단위 ~13km)
-  // zoom 12 ≈ 0.48° (광역 단위)
-  const gridDeg = 0.015 * Math.pow(2, SHOW_PINS_ZOOM - zoom);
   const cells: Record<string, GmepuMemo[]> = {};
 
   for (const memo of memos) {
-    const key = `${Math.floor(memo.lat / gridDeg)},${Math.floor(memo.lng / gridDeg)}`;
+    const key = getAdminKey(memo, zoom);
     if (!cells[key]) cells[key] = [];
     cells[key].push(memo);
   }
 
-  return Object.values(cells).map((group: GmepuMemo[]) => ({
-    lat: group.reduce((s: number, m: GmepuMemo) => s + m.lat, 0) / group.length,
-    lng: group.reduce((s: number, m: GmepuMemo) => s + m.lng, 0) / group.length,
-    count: group.length,
-    memos: group,
-  }));
+  return Object.values(cells).map((group: GmepuMemo[]) => {
+    const rep = group[0];
+    const label = zoom < 10
+      ? (rep.sido ?? undefined)
+      : zoom < 14
+        ? (rep.sigungu ?? undefined)
+        : (rep.dong ?? undefined);
+    return {
+      lat: group.reduce((s: number, m: GmepuMemo) => s + m.lat, 0) / group.length,
+      lng: group.reduce((s: number, m: GmepuMemo) => s + m.lng, 0) / group.length,
+      count: group.length,
+      memos: group,
+      label,
+    };
+  });
 }
 
 interface Props {
@@ -132,9 +153,13 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
     const center = map.getCenter();
     if (!center) return;
 
+    const lat = center.lat();
+    const lng = center.lng();
+    const { sido, sigungu, dong } = await reverseGeocode(lat, lng);
+
     const { data } = await supabase
       .from("gmepu_memos")
-      .insert({ text, color: "#FFF9B0", lat: center.lat(), lng: center.lng(), nickname: isAnonymous ? "익명" : profile.nickname, user_id: user.id, likes: 0 })
+      .insert({ text, color: "#FFF9B0", lat, lng, nickname: isAnonymous ? "익명" : profile.nickname, user_id: user.id, sido, sigungu, dong })
       .select()
       .single();
 
@@ -281,7 +306,14 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
                   textShadow: "0 1px 3px rgba(0,0,0,0.5)",
                 }}
               >
-                {cluster.count > 1 ? cluster.count : ""}
+                <div style={{ lineHeight: 1.1, textAlign: "center" }}>
+                  {cluster.count > 1 && <div>{cluster.count}</div>}
+                  {cluster.label && (
+                    <div style={{ fontSize: 9, opacity: 0.85, marginTop: cluster.count > 1 ? 1 : 0 }}>
+                      {cluster.label}
+                    </div>
+                  )}
+                </div>
               </div>
             </AdvancedMarker>
           );
