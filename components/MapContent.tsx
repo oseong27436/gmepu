@@ -16,6 +16,7 @@ interface Cluster {
   lat: number;
   lng: number;
   count: number;
+  fireCount: number;
   memos: GmepuMemo[];
   label?: string;
 }
@@ -56,6 +57,7 @@ function clusterMemos(memos: GmepuMemo[], zoom: number): Cluster[] {
       lat: group.reduce((s: number, m: GmepuMemo) => s + m.lat, 0) / group.length,
       lng: group.reduce((s: number, m: GmepuMemo) => s + m.lng, 0) / group.length,
       count: group.length,
+      fireCount: group.reduce((s: number, m: GmepuMemo) => s + (m.fire_count ?? 0), 0),
       memos: group,
       label,
     };
@@ -271,17 +273,21 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
         {/* 클러스터 글로우 (줌 아웃 시) */}
         {!showPins && clusters.map((cluster, i) => {
           // log 스케일로 밀도 강도 계산 (1개=0, 10개≈1)
-          const intensity = Math.min(Math.log2(cluster.count + 1) / Math.log2(11), 1);
-          const size = Math.round(22 + intensity * 28); // 22px ~ 50px
+          // 🔥가 많을수록 heatScore 가중치 증가 (🔥 1개 = 메모 3개 가치)
+          const heatScore = cluster.count + cluster.fireCount * 3;
+          const intensity = Math.min(Math.log10(heatScore + 1) / 3, 1);
+          // 🔥 비율: 클러스터 내 메모당 평균 🔥 수 기반
+          const fireRatio = Math.min(cluster.fireCount / Math.max(cluster.count * 3, 1), 1);
+          const size = Math.round(22 + intensity * 32); // 22px ~ 54px
 
-          // 노란 → 주황 (붉은주황은 제거)
+          // 🔥 많으면 주황→붉은주황으로, 기본은 노란→주황
           const r = 255;
-          const g = Math.round(220 - intensity * 80); // 220 → 140 (주황까지만)
+          const g = Math.round(220 - intensity * 80 - fireRatio * 60); // 🔥 많으면 더 붉게
           const b = Math.round(30 - intensity * 30);
-          const color = `rgb(${r},${g},${b})`;
-          const glowSpread = Math.round(4 + intensity * 8);  // 절반으로 축소
-          const glowAlpha = 0.2 + intensity * 0.2;           // 더 은은하게
-          const animDur = (2.2 - intensity * 0.6).toFixed(1); // 2.2s → 1.6s
+          const color = `rgb(${r},${Math.max(g, 80)},${b})`;
+          const glowSpread = Math.round(4 + intensity * 8 + fireRatio * 6);
+          const glowAlpha = 0.2 + intensity * 0.2 + fireRatio * 0.15;
+          const animDur = (2.2 - intensity * 1.2).toFixed(1); // 2.2s → 1.0s
 
           return (
             <AdvancedMarker
@@ -316,6 +322,10 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
         {showPins && memos.map((memo) => {
           const { bgColor, borderRadius, filter, opacity } = getMemoAgeStyle(memo.created_at);
           const rot = parseInt(memo.id[0], 16) % 2 === 0 ? "2deg" : "-2deg";
+          const isHot = (memo.fire_count ?? 0) >= 10;
+          const fireGlow = isHot
+            ? ` drop-shadow(0 0 ${Math.min(4 + memo.fire_count / 5, 10)}px rgba(255,107,53,0.7))`
+            : "";
           return (
             <AdvancedMarker
               key={memo.id}
@@ -327,7 +337,7 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
                 style={{
                   background: bgColor,
                   borderRadius,
-                  filter,
+                  filter: filter + fireGlow,
                   opacity,
                   maxWidth: "110px",
                   transform: `rotate(${rot})`,
@@ -335,6 +345,20 @@ export default function MapContent({ user, profile, onLoginRequired }: Props) {
               >
                 <p className="line-clamp-2">{memo.text}</p>
                 <div style={{ position: "absolute", bottom: "-7px", left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: `7px solid ${bgColor}` }} />
+                {isHot && (
+                  <div style={{
+                    position: "absolute",
+                    top: -8, right: -8,
+                    background: "#FF6B35",
+                    borderRadius: "50%",
+                    width: 20, height: 20,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10,
+                    boxShadow: "0 0 6px rgba(255,107,53,0.7)",
+                  }}>
+                    🔥
+                  </div>
+                )}
               </div>
             </AdvancedMarker>
           );

@@ -92,6 +92,7 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
   const [myReactions, setMyReactions] = useState<Set<string>>(new Set());
   const [replies, setReplies] = useState<GmepuReply[]>([]);
   const [replyText, setReplyText] = useState("");
+  const [isReplyAnonymous, setIsReplyAnonymous] = useState(false);
 
   useEffect(() => {
     const loadReactions = async () => {
@@ -148,7 +149,7 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
     if (!replyText.trim()) return;
     const { data } = await supabase
       .from("gmepu_replies")
-      .insert({ memo_id: memo.id, text: replyText.trim(), nickname: userNickname, user_id: userId })
+      .insert({ memo_id: memo.id, text: replyText.trim(), nickname: isReplyAnonymous ? "익명" : userNickname, user_id: userId })
       .select()
       .single();
     if (data) {
@@ -187,24 +188,33 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
           );
         })()}
 
-        {/* 이모지 반응 */}
-        <div className="flex gap-2 mb-5 flex-wrap">
-          {REACTION_EMOJIS.map((emoji) => (
-            <button
-              key={emoji}
-              className="font-display font-bold px-3 py-2 rounded-2xl text-sm flex items-center gap-1 transition-transform active:scale-90"
-              style={{
-                background: myReactions.has(emoji) ? "var(--dark)" : "rgba(26,19,6,0.1)",
-                color: myReactions.has(emoji) ? "var(--yellow)" : "var(--dark)",
-                boxShadow: myReactions.has(emoji) ? "0 3px 0 rgba(0,0,0,0.2)" : "none",
-              }}
-              onClick={() => toggleReaction(emoji)}
-            >
-              <span>{emoji}</span>
-              {reactions[emoji] ? <span>{reactions[emoji]}</span> : null}
-            </button>
-          ))}
+        {/* 🔥 반응 */}
+        <div className="flex items-center gap-3 mb-2">
+          <button
+            className="font-display font-bold px-4 py-2 rounded-2xl text-base flex items-center gap-2 transition-transform active:scale-90"
+            style={{
+              background: myReactions.has("🔥") ? "var(--dark)" : "rgba(26,19,6,0.1)",
+              color: myReactions.has("🔥") ? "var(--yellow)" : "var(--dark)",
+              boxShadow: myReactions.has("🔥") ? "0 3px 0 rgba(0,0,0,0.2)" : "none",
+            }}
+            onClick={() => toggleReaction("🔥")}
+          >
+            <span>🔥</span>
+            {reactions["🔥"] ? <span className="font-black">{reactions["🔥"]}</span> : null}
+          </button>
+          {reactions["🔥"] ? (
+            <span className="text-xs opacity-40" style={{ color: "var(--dark)" }}>
+              {reactions["🔥"]}명이 불태웠어요
+            </span>
+          ) : (
+            <span className="text-xs opacity-30" style={{ color: "var(--dark)" }}>첫 번째로 불태워봐요</span>
+          )}
         </div>
+        {(memo.fire_count ?? 0) >= 5 && (
+          <p className="text-xs mb-5" style={{ color: "#FF6B35" }}>
+            🔥 열기가 식지 않아 소멸이 연장됩니다 (최대 14일)
+          </p>
+        )}
 
         {/* 답글 목록 */}
         {replies.length > 0 && (
@@ -243,6 +253,17 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
             ↑
           </button>
         </div>
+        {userId && (
+          <label className="flex items-center gap-2 mt-2 cursor-pointer select-none w-fit">
+            <input
+              type="checkbox"
+              checked={isReplyAnonymous}
+              onChange={(e) => setIsReplyAnonymous(e.target.checked)}
+              className="w-4 h-4 rounded accent-[var(--dark)] cursor-pointer"
+            />
+            <span className="text-xs font-medium opacity-50" style={{ color: "var(--dark)" }}>익명으로 달기</span>
+          </label>
+        )}
       </div>
     </div>
   );

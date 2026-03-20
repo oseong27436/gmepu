@@ -23,6 +23,7 @@ export interface GmepuMemo {
   sido: string | null;
   sigungu: string | null;
   dong: string | null;
+  fire_count: number;
 }
 
 export interface GmepuReaction {
@@ -42,4 +43,4 @@ export interface GmepuReply {
   created_at: string;
 }
 
-export const REACTION_EMOJIS = ["❤️", "🔥", "😂", "👀", "👍"] as const;
+export const REACTION_EMOJIS = ["🔥"] as const;
