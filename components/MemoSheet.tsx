@@ -93,6 +93,7 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
   const [replies, setReplies] = useState<GmepuReply[]>([]);
   const [replyText, setReplyText] = useState("");
   const [isReplyAnonymous, setIsReplyAnonymous] = useState(false);
+  const [showScrapTooltip, setShowScrapTooltip] = useState(false);
 
   useEffect(() => {
     const loadReactions = async () => {
@@ -188,7 +189,7 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
           );
         })()}
 
-        {/* 🔥 반응 */}
+        {/* 🔥 반응 + 스크랩 */}
         <div className="flex items-center gap-3 mb-2">
           <button
             className="font-display font-bold px-4 py-2 rounded-2xl text-base flex items-center gap-2 transition-transform active:scale-90"
@@ -202,6 +203,60 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
             <span>🔥</span>
             {reactions["🔥"] ? <span className="font-black">{reactions["🔥"]}</span> : null}
           </button>
+
+          {/* 스크랩 버튼 */}
+          <div style={{ position: "relative" }}>
+            <button
+              onMouseEnter={() => setShowScrapTooltip(true)}
+              onMouseLeave={() => setShowScrapTooltip(false)}
+              onTouchStart={() => setShowScrapTooltip(true)}
+              onTouchEnd={() => setTimeout(() => setShowScrapTooltip(false), 2000)}
+              style={{
+                background: "rgba(26,19,6,0.1)",
+                border: "none",
+                borderRadius: 16,
+                padding: "8px 14px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 16,
+              }}
+            >
+              🔖
+            </button>
+            {showScrapTooltip && (
+              <div style={{
+                position: "absolute",
+                bottom: "calc(100% + 8px)",
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: "var(--dark)",
+                color: "var(--yellow)",
+                borderRadius: 10,
+                padding: "7px 12px",
+                fontSize: 11,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                zIndex: 10,
+                pointerEvents: "none",
+              }}>
+                ✨ 멤버십 가입 시 이용 가능해요
+                {/* 말풍선 꼬리 */}
+                <div style={{
+                  position: "absolute",
+                  top: "100%", left: "50%",
+                  transform: "translateX(-50%)",
+                  width: 0, height: 0,
+                  borderLeft: "6px solid transparent",
+                  borderRight: "6px solid transparent",
+                  borderTop: "6px solid var(--dark)",
+                }} />
+              </div>
+            )}
+          </div>
+
           {reactions["🔥"] ? (
             <span className="text-xs opacity-40" style={{ color: "var(--dark)" }}>
               {reactions["🔥"]}명이 불태웠어요
