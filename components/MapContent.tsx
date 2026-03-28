@@ -175,12 +175,10 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
   }, [map]);
 
   const handleAddMemo = useCallback(async (text: string, isAnonymous: boolean) => {
-    if (!map || !profile || !user) return;
-    const center = map.getCenter();
-    if (!center) return;
+    if (!map || !profile || !user || !userPos) return;
 
-    const lat = center.lat();
-    const lng = center.lng();
+    const lat = userPos.lat;
+    const lng = userPos.lng;
     const { sido, sigungu, dong } = await reverseGeocode(lat, lng);
 
     const { data } = await supabase
