@@ -189,7 +189,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
 
     if (data) setMemos((prev) => [data, ...prev]);
     setShowAddSheet(false);
-  }, [map, profile, user]);
+  }, [map, profile, user, userPos]);
 
   const goToMyLocation = () => {
     if (userPos) map?.panTo(userPos);
