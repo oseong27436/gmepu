@@ -215,30 +215,39 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
         scaleControl
         restriction={MAP_RESTRICTION}
         className="w-full h-full"
+        styles={[
+          { elementType: "geometry", stylers: [{ color: "#f5ede0" }] },
+          { elementType: "labels.text.fill", stylers: [{ color: "#8b6f5a" }] },
+          { elementType: "labels.text.stroke", stylers: [{ color: "#fdf6ec" }] },
+          { featureType: "road", elementType: "geometry", stylers: [{ color: "#faf0e6" }] },
+          { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#e8dcc8" }] },
+          { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#f2c4ce" }] },
+          { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#e8a4b0" }] },
+          { featureType: "water", elementType: "geometry", stylers: [{ color: "#d4c8e8" }] },
+          { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#8b6f5a" }] },
+          { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#b8d4c8" }] },
+          { featureType: "poi", elementType: "geometry", stylers: [{ color: "#e8dcc8" }] },
+          { featureType: "transit", elementType: "geometry", stylers: [{ color: "#d4c8e8" }] },
+          { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#f5ede0" }] },
+        ]}
       >
-        {/* 내 위치 마커 — 파란 점 */}
+        {/* 내 위치 마커 — 파스텔 */}
         {userPos && (
           <AdvancedMarker position={userPos}>
             <div style={{ position: "relative", width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center" }}>
               {/* 방향 콘 */}
               {heading !== null && (
                 <div style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  position: "absolute", inset: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
                   transform: `rotate(${heading}deg)`,
                   transformOrigin: "center",
                 }}>
                   <div style={{
                     position: "absolute",
-                    bottom: "50%",
-                    left: "50%",
-                    marginLeft: -18,
-                    width: 36,
-                    height: 44,
-                    background: "rgba(66,133,244,0.22)",
+                    bottom: "50%", left: "50%", marginLeft: -18,
+                    width: 36, height: 44,
+                    background: "rgba(232,164,176,0.35)",
                     clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
                     transformOrigin: "bottom center",
                   }} />
@@ -246,38 +255,32 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
               )}
               {/* 정확도 링 */}
               <div style={{
-                position: "absolute",
-                inset: 0,
+                position: "absolute", inset: 0,
                 borderRadius: "50%",
-                background: "rgba(66,133,244,0.15)",
+                background: "rgba(242,196,206,0.25)",
               }} />
-              {/* 파란 점 */}
+              {/* 포인트 */}
               <div style={{
-                width: 18,
-                height: 18,
-                borderRadius: "50%",
-                background: "#4285F4",
+                width: 18, height: 18, borderRadius: "50%",
+                background: "linear-gradient(135deg, #E8A4B0, #D4C8E8)",
                 border: "2.5px solid white",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-                zIndex: 1,
-                flexShrink: 0,
+                boxShadow: "0 2px 8px rgba(232,164,176,0.5)",
+                zIndex: 1, flexShrink: 0,
               }} />
-              {/* 닉네임 라벨 (로그인 시) */}
+              {/* 닉네임 라벨 */}
               {profile && (
                 <div style={{
                   position: "absolute",
-                  bottom: "calc(100% + 4px)",
-                  left: "50%",
+                  bottom: "calc(100% + 4px)", left: "50%",
                   transform: "translateX(-50%)",
-                  background: "white",
-                  border: "1.5px solid #4285F4",
-                  borderRadius: 6,
+                  background: "var(--foam)",
+                  border: "1.5px solid var(--rose)",
+                  borderRadius: 8,
                   padding: "2px 8px",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--dark)",
+                  fontSize: 11, fontWeight: 700,
+                  color: "var(--espresso)",
                   whiteSpace: "nowrap",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+                  boxShadow: "0 2px 8px rgba(74,55,40,0.12)",
                 }}>
                   {profile.nickname}
                 </div>
@@ -300,14 +303,21 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           const intensity = getIntensity(cluster.count);
           const isNear = zoom >= 17;
 
-          // 노랑 → 주황 → 빨강
-          const r = 255;
-          const g = Math.round(220 - intensity * 180);
-          const b = Math.round(30 - intensity * 30);
-          const color = `rgb(${r},${Math.max(g, 40)},${Math.max(b, 0)})`;
+          // 파스텔: 크림 → 로즈 → 라벤더
+          const baseColors = [
+            [253, 246, 236], // cream
+            [242, 196, 206], // rose
+            [212, 200, 232], // lavender
+          ];
+          const ci = Math.min(Math.floor(intensity * 2), 1);
+          const t = (intensity * 2) - ci;
+          const cr = Math.round(baseColors[ci][0] + (baseColors[ci+1][0] - baseColors[ci][0]) * t);
+          const cg = Math.round(baseColors[ci][1] + (baseColors[ci+1][1] - baseColors[ci][1]) * t);
+          const cb = Math.round(baseColors[ci][2] + (baseColors[ci+1][2] - baseColors[ci][2]) * t);
+          const color = `rgb(${cr},${cg},${cb})`;
 
           const glowSpread = Math.round(4 + intensity * 8);
-          const glowAlpha = 0.18 + intensity * 0.32;
+          const glowAlpha = 0.15 + intensity * 0.25;
           const animDur = isNear ? "0" : (2.2 - intensity * 1.2).toFixed(1);
 
           // 아이콘 크기: 줌과 강도 기반
@@ -331,7 +341,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
                     width: size,
                     height: size,
                     background: color,
-                    filter: `drop-shadow(0 0 ${glowSpread}px rgba(${r},${Math.max(g,40)},${Math.max(b,0)},${glowAlpha}))`,
+                    filter: `drop-shadow(0 0 ${glowSpread}px rgba(${cr},${cg},${cb},${glowAlpha}))`,
                     ["--glow-dur" as string]: `${animDur}s`,
                     transform: `rotate(${rot})`,
                     clipPath: `polygon(0 0, calc(100% - ${cornerSize}px) 0, 100% ${cornerSize}px, 100% 100%, 0 100%)`,
@@ -352,24 +362,24 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
                     borderColor: "rgba(0,0,0,0.15) transparent transparent transparent",
                   }} />
                   {/* 텍스트 줄 암시 */}
-                  <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)" }} />
-                  <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)", width: "75%" }} />
-                  <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(26,19,6,0.35)", width: "55%" }} />
+                  <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(74,55,40,0.3)" }} />
+                  <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(74,55,40,0.3)", width: "75%" }} />
+                  <div style={{ height: Math.max(2, Math.round(size * 0.06)), borderRadius: 2, background: "rgba(74,55,40,0.3)", width: "55%" }} />
                 </div>
-                {/* 개수 배지 — 래퍼 기준 우상단 */}
+                {/* 개수 배지 */}
                 {cluster.count > 1 && (
                   <div style={{
                     position: "absolute",
                     top: 0, right: 0,
-                    background: "var(--dark)",
-                    color: color,
+                    background: "var(--espresso)",
+                    color: "var(--cream)",
                     borderRadius: 99,
                     padding: "1px 6px",
                     fontSize: Math.max(9, Math.round(size * 0.22)),
                     fontWeight: 900,
-                    fontFamily: "Nunito, sans-serif",
+                    fontFamily: "Pretendard Variable, sans-serif",
                     lineHeight: 1.4,
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                    boxShadow: "0 2px 8px rgba(74,55,40,0.3)",
                     whiteSpace: "nowrap",
                   }}>
                     {cluster.count}
@@ -382,7 +392,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
 
         {/* 개별 메모 핀 (줌 인 시) */}
         {showPins && filteredMemos.map((memo) => {
-          const { bgColor, borderRadius, filter, opacity } = getMemoAgeStyle(memo.created_at);
+          const { opacity } = getMemoAgeStyle(memo.created_at);
           const rot = parseInt(memo.id[0], 16) % 2 === 0 ? "2deg" : "-2deg";
           const isHot = (memo.fire_count ?? 0) >= 10;
           const fireGlow = isHot
@@ -394,14 +404,15 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
               position={{ lat: memo.lat, lng: memo.lng }}
               onClick={() => setSelectedMemo(memo)}
             >
-              {/* 포스트잇 아이콘 — 텍스트 숨김, 클릭해야 내용 공개 */}
+              {/* 포스트잇 핀 */}
               <div
                 className="memo-card cursor-pointer relative"
                 style={{
-                  width: 42,
-                  height: 42,
-                  background: bgColor,
-                  filter: filter + fireGlow,
+                  width: 44,
+                  height: 44,
+                  background: "#FAF0E6",
+                  border: "1.5px solid #E8DCC8",
+                  filter: fireGlow || undefined,
                   opacity,
                   transform: `rotate(${rot})`,
                   display: "flex",
@@ -410,31 +421,31 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
                   gap: 5,
                   padding: "10px 10px 10px 9px",
                   clipPath: "polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%)",
-                  boxShadow: "3px 4px 0 rgba(0,0,0,0.18)",
+                  borderRadius: 4,
                 }}
               >
-                {/* 접힌 모서리 삼각형 */}
+                {/* 접힌 모서리 */}
                 <div style={{
                   position: "absolute", top: 0, right: 0,
                   width: 0, height: 0,
                   borderStyle: "solid",
                   borderWidth: "12px 12px 0 0",
-                  borderColor: "rgba(0,0,0,0.12) transparent transparent transparent",
+                  borderColor: "rgba(74,55,40,0.1) transparent transparent transparent",
                 }} />
                 {/* 텍스트 줄 암시 */}
-                <div style={{ height: 2.5, borderRadius: 2, background: "rgba(26,19,6,0.3)" }} />
-                <div style={{ height: 2.5, borderRadius: 2, background: "rgba(26,19,6,0.3)", width: "75%" }} />
-                <div style={{ height: 2.5, borderRadius: 2, background: "rgba(26,19,6,0.3)", width: "55%" }} />
+                <div style={{ height: 2.5, borderRadius: 2, background: "rgba(74,55,40,0.25)" }} />
+                <div style={{ height: 2.5, borderRadius: 2, background: "rgba(74,55,40,0.25)", width: "75%" }} />
+                <div style={{ height: 2.5, borderRadius: 2, background: "rgba(74,55,40,0.25)", width: "55%" }} />
                 {/* 꼬리 */}
-                <div style={{ position: "absolute", bottom: -7, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: `7px solid ${bgColor}` }} />
+                <div style={{ position: "absolute", bottom: -7, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "7px solid #E8DCC8" }} />
                 {/* 🔥 배지 */}
                 {isHot && (
                   <div style={{
                     position: "absolute", top: -7, right: -7,
-                    background: "#FF6B35", borderRadius: "50%",
+                    background: "#E8A4B0", borderRadius: "50%",
                     width: 18, height: 18,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 9, boxShadow: "0 0 5px rgba(255,107,53,0.7)",
+                    fontSize: 9, boxShadow: "0 2px 6px rgba(232,164,176,0.6)",
                   }}>🔥</div>
                 )}
               </div>
@@ -457,8 +468,14 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
       {/* 하단 버튼들 */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3">
         <button
-          className="btn-chunky font-display font-black px-6 py-4 rounded-2xl text-base"
-          style={{ background: "var(--dark)", color: "var(--yellow)" }}
+          className="btn-chunky font-black px-7 py-4 rounded-2xl text-base"
+          style={{
+            background: "var(--espresso)",
+            color: "var(--cream)",
+            border: "none",
+            fontSize: 15,
+            letterSpacing: "-0.3px",
+          }}
           onClick={() => {
             if (!profile) { onLoginRequired(); return; }
             if (!userPos) { alert("위치 정보를 가져오는 중이에요. 잠시 후 다시 시도해주세요."); return; }
@@ -471,9 +488,10 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
       <div className="absolute bottom-8 right-3 flex flex-col gap-2 items-center">
         {/* 줌 +/- 버튼 */}
         <div style={{
-          background: "white",
-          borderRadius: 8,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+          background: "var(--foam)",
+          borderRadius: 12,
+          border: "1.5px solid var(--sand)",
+          boxShadow: "0 2px 8px rgba(74,55,40,0.1)",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
@@ -484,13 +502,11 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
               width: 40, height: 40,
               background: "transparent",
               border: "none",
-              borderBottom: "1px solid #e0e0e0",
+              borderBottom: "1px solid var(--sand)",
               cursor: "pointer",
-              fontSize: 22,
-              fontWeight: 300,
-              color: "#444",
+              fontSize: 22, fontWeight: 300,
+              color: "var(--latte)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              lineHeight: 1,
             }}
           >+</button>
           <button
@@ -500,33 +516,31 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
               background: "transparent",
               border: "none",
               cursor: "pointer",
-              fontSize: 22,
-              fontWeight: 300,
-              color: "#444",
+              fontSize: 22, fontWeight: 300,
+              color: "var(--latte)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              lineHeight: 1,
             }}
           >−</button>
         </div>
 
-        {/* 내 위치 버튼 (탭하면 heading도 활성화) */}
+        {/* 내 위치 버튼 */}
         <button
           onClick={() => { goToMyLocation(); enableHeading(); }}
           title="내 위치"
           style={{
             width: 40, height: 40,
             borderRadius: "50%",
-            background: "white",
-            border: "none",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+            background: "var(--foam)",
+            border: "1.5px solid var(--sand)",
+            boxShadow: "0 2px 8px rgba(74,55,40,0.1)",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer",
           }}
         >
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke={heading !== null ? "#4285F4" : "#666"} strokeWidth="2" strokeLinecap="round"/>
-            <circle cx="12" cy="12" r="4" fill={heading !== null ? "#4285F4" : "#666"}/>
-            <circle cx="12" cy="12" r="9" stroke={heading !== null ? "#4285F4" : "#999"} strokeWidth="1.5"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke={heading !== null ? "#E8A4B0" : "#8B6F5A"} strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="12" cy="12" r="4" fill={heading !== null ? "#E8A4B0" : "#8B6F5A"}/>
+            <circle cx="12" cy="12" r="9" stroke={heading !== null ? "#E8A4B0" : "#C8B898"} strokeWidth="1.5"/>
           </svg>
         </button>
       </div>

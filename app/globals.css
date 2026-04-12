@@ -4,20 +4,30 @@
 @import "tailwindcss";
 
 :root {
-  --yellow: #FFE234;
-  --blue: #4BAFFF;
-  --red: #FF5C5C;
-  --green: #7EE8A2;
-  --pink: #FFB3D9;
-  --orange: #FF9A3C;
-  --dark: #1A1306;
+  /* 레거시 (일부 컴포넌트 호환용) */
+  --yellow: #F2C4CE;
+  --dark: #4A3728;
+
+  /* 파스텔 커피북 팔레트 */
+  --cream: #FDF6EC;
+  --foam: #FAF0E6;
+  --sand: #E8DCC8;
+  --sand-dark: #C8B898;
+  --rose: #F2C4CE;
+  --rose-dark: #E8A4B0;
+  --sage: #B8D4C8;
+  --lavender: #D4C8E8;
+  --espresso: #4A3728;
+  --latte: #8B6F5A;
+  --mochaccino: #6B4C3B;
+
   color-scheme: light;
 }
 
 body {
   font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
-  color: var(--dark);
-  background: white;
+  color: var(--espresso);
+  background: var(--cream);
 }
 
 .font-display {
@@ -25,21 +35,21 @@ body {
 }
 
 .memo-card {
-  box-shadow: 3px 4px 0px rgba(0, 0, 0, 0.2);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 16px rgba(74, 55, 40, 0.12);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
 }
 .memo-card:hover {
-  transform: translateY(-3px) !important;
-  box-shadow: 5px 8px 0px rgba(0, 0, 0, 0.2);
+  transform: translateY(-4px) rotate(-1deg) !important;
+  box-shadow: 0 8px 24px rgba(74, 55, 40, 0.18);
 }
 
 .btn-chunky {
-  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.25);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  box-shadow: 0 4px 16px rgba(74, 55, 40, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .btn-chunky:active {
-  transform: translateY(3px);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  transform: translateY(2px);
+  box-shadow: 0 2px 8px rgba(74, 55, 40, 0.2);
 }
 
 @keyframes glow-pulse {
@@ -56,24 +66,3 @@ body {
   opacity: 0.85;
 }
 
-/* 채팅방 패널: 모바일=아래서 위 / 데스크탑=왼쪽 슬라이드 */
-.chat-panel {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: 65vh;
-  z-index: 40;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.chat-panel.closed {
-  transform: translateY(100%) !important;
-}
-@media (min-width: 768px) {
-  .chat-panel {
-    top: 0; left: 0; right: auto; bottom: 0;
-    width: 340px;
-    height: 100%;
-  }
-  .chat-panel.closed {
-    transform: translateX(-100%) !important;
-  }
-}
