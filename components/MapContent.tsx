@@ -3,8 +3,9 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
 import { supabase, type GmepuMemo, type UserProfile } from "@/lib/supabase";
-import { AddMemoSheet, MemoDetailSheet } from "@/components/MemoSheet";
-import { timeAgo, getMemoAgeStyle, reverseGeocode } from "@/lib/utils";
+import { AddMemoSheet } from "@/components/MemoSheet";
+import { getMemoAgeStyle, reverseGeocode } from "@/lib/utils";
+import MemoSwipeSheet from "@/components/MemoSwipeSheet";
 import { MAP_ID, KOREA_CENTER, MAP_RESTRICTION } from "@/lib/mapConstants";
 import MapHeader from "@/components/MapHeader";
 import MyMemoPanel from "@/components/MyMemoPanel";
@@ -83,6 +84,8 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
   const map = useMap();
   const [memos, setMemos] = useState<GmepuMemo[]>([]);
   const [selectedMemo, setSelectedMemo] = useState<GmepuMemo | null>(null);
+  const [swipeMemos, setSwipeMemos] = useState<GmepuMemo[]>([]);
+  const [swipeIndex, setSwipeIndex] = useState(0);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showMyMemos, setShowMyMemos] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
@@ -189,8 +192,18 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
 
   const handleClusterClick = (cluster: Cluster) => {
     if (!map) return;
-    map.panTo({ lat: cluster.lat, lng: cluster.lng });
-    map.setZoom(Math.min((map.getZoom() ?? zoom) + 3, SHOW_PINS_ZOOM));
+    // 줌이 충분히 높으면 메모 스와이프 시트 열기
+    if (zoom >= SHOW_PINS_ZOOM - 2) {
+      const sorted = [...cluster.memos].sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setSwipeMemos(sorted);
+      setSwipeIndex(0);
+      map.panTo({ lat: sorted[0].lat, lng: sorted[0].lng });
+    } else {
+      map.panTo({ lat: cluster.lat, lng: cluster.lng });
+      map.setZoom(Math.min((map.getZoom() ?? zoom) + 3, SHOW_PINS_ZOOM));
+    }
   };
 
   const myMemos = user ? memos.filter((m) => m.user_id === user.id) : [];
@@ -200,6 +213,17 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
     : activeFilter === "friends"
       ? [] // 친구 기능 준비 중
       : memos;
+
+  const openSwipeAt = (memo: GmepuMemo) => {
+    const sorted = [...filteredMemos].sort((a, b) => {
+      const distA = Math.hypot(a.lat - memo.lat, a.lng - memo.lng);
+      const distB = Math.hypot(b.lat - memo.lat, b.lng - memo.lng);
+      return distA - distB;
+    });
+    const idx = sorted.findIndex((m) => m.id === memo.id);
+    setSwipeMemos(sorted);
+    setSwipeIndex(idx >= 0 ? idx : 0);
+  };
 
   const showPins = zoom >= SHOW_PINS_ZOOM;
   const clusters = showPins ? [] : clusterMemos(filteredMemos, zoom);
@@ -392,7 +416,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
             <AdvancedMarker
               key={memo.id}
               position={{ lat: memo.lat, lng: memo.lng }}
-              onClick={() => setSelectedMemo(memo)}
+              onClick={() => openSwipeAt(memo)}
             >
               {/* 포스트잇 아이콘 — 텍스트 숨김, 클릭해야 내용 공개 */}
               <div
@@ -544,7 +568,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           profile={profile}
           myMemos={myMemos}
           onClose={() => setShowMyMemos(false)}
-          onSelectMemo={setSelectedMemo}
+          onSelectMemo={(memo) => { setShowMyMemos(false); openSwipeAt(memo); }}
         />
       )}
 
@@ -554,13 +578,14 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           onClose={() => setShowAddSheet(false)}
         />
       )}
-      {selectedMemo && (
-        <MemoDetailSheet
-          memo={selectedMemo}
+      {swipeMemos.length > 0 && (
+        <MemoSwipeSheet
+          memos={swipeMemos}
+          initialIndex={swipeIndex}
           userId={user?.id ?? null}
           userNickname={profile?.nickname ?? null}
-          onClose={() => setSelectedMemo(null)}
-          timeAgo={timeAgo(selectedMemo.created_at)}
+          onClose={() => setSwipeMemos([])}
+          onFocusMemo={(memo) => map?.panTo({ lat: memo.lat, lng: memo.lng })}
           onLoginRequired={onLoginRequired}
         />
       )}
