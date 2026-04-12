@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase, REACTION_EMOJIS, type GmepuMemo, type GmepuReply } from "@/lib/supabase";
+import { getMemoAgeStyle } from "@/lib/utils";
 
 interface MemoSheetProps {
   onSubmit: (text: string, isAnonymous: boolean) => void;
@@ -21,72 +22,51 @@ export function AddMemoSheet({ onSubmit, onClose }: MemoSheetProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end"
-      style={{ background: "rgba(74,55,40,0.2)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(0,0,0,0.3)" }}
       onClick={onClose}
     >
       <div
         className="w-full rounded-t-3xl p-6 pb-10"
-        style={{ background: "var(--foam)" }}
+        style={{ background: "var(--yellow)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 핸들 */}
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sand)", margin: "0 auto 20px" }} />
-
-        <h2 style={{
-          fontSize: 17, fontWeight: 800,
-          color: "var(--espresso)",
-          marginBottom: 16,
-          letterSpacing: "-0.3px",
-        }}>
-          지금 이 순간을 뿌려요 ✨
+        <div className="w-10 h-1 rounded-full mx-auto mb-5 opacity-30" style={{ background: "var(--dark)" }} />
+        <h2 className="font-display font-black text-xl mb-4" style={{ color: "var(--dark)" }}>
+          여기에 메모 남기기 ✏️
         </h2>
 
-        {/* 텍스트 입력 */}
-        <div style={{
-          background: "var(--cream)",
-          border: `1.5px solid var(--sand)`,
-          borderRadius: 16,
-          padding: "14px 16px",
-          marginBottom: 12,
-          boxShadow: "inset 0 2px 8px rgba(74,55,40,0.04)",
-        }}>
+        <div className="memo-card p-4 mb-3 rounded-lg" style={{ background: "#FFF9B0" }}>
           <textarea
             className="w-full bg-transparent outline-none text-sm font-medium resize-none"
-            style={{ color: "var(--espresso)", minHeight: "80px", fontFamily: "inherit" }}
+            style={{ color: "var(--dark)", minHeight: "80px" }}
             placeholder="짧고 가볍게 남겨봐요 ✨"
             maxLength={100}
             value={text}
             onChange={(e) => setText(e.target.value)}
             autoFocus
           />
-          <div style={{ textAlign: "right", fontSize: 11, color: "var(--latte)", opacity: 0.6 }}>
-            {text.length}/100
-          </div>
+          <div className="text-right text-xs opacity-40">{text.length}/100</div>
         </div>
 
-        {/* 익명 체크 */}
-        <label className="flex items-center gap-2 mb-5 cursor-pointer select-none w-fit">
+        <p className="text-xs opacity-40 mb-4 text-center" style={{ color: "var(--dark)" }}>
+          메모는 일주일 간 유지됩니다!
+        </p>
+
+        <label className="flex items-center gap-2 mb-4 cursor-pointer select-none w-fit">
           <input
             type="checkbox"
             checked={isAnonymous}
             onChange={(e) => setIsAnonymous(e.target.checked)}
-            className="w-4 h-4 rounded cursor-pointer"
-            style={{ accentColor: "var(--espresso)" }}
+            className="w-4 h-4 rounded accent-[var(--dark)] cursor-pointer"
           />
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--latte)" }}>익명으로 뿌리기</span>
+          <span className="text-sm font-medium opacity-60" style={{ color: "var(--dark)" }}>익명으로 뿌리기</span>
         </label>
 
         <button
-          className="btn-chunky w-full py-4 rounded-2xl text-base"
+          className="btn-chunky w-full font-display font-black py-4 rounded-2xl text-lg"
           style={{
-            background: text.trim()
-              ? "var(--espresso)"
-              : "var(--sand)",
-            color: text.trim() ? "var(--cream)" : "var(--sand-dark)",
-            fontWeight: 800,
-            fontSize: 15,
-            border: "none",
-            cursor: text.trim() ? "pointer" : "default",
+            background: text.trim() ? "var(--dark)" : "rgba(26,19,6,0.2)",
+            color: text.trim() ? "var(--yellow)" : "rgba(26,19,6,0.4)",
           }}
           onClick={handleSubmit}
           disabled={!text.trim()}
@@ -182,61 +162,46 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
   return (
     <div
       className="fixed inset-0 z-50 flex items-end"
-      style={{ background: "rgba(74,55,40,0.2)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(0,0,0,0.3)" }}
       onClick={onClose}
     >
       <div
         className="w-full rounded-t-3xl p-6 pb-10 max-h-[85vh] overflow-y-auto"
-        style={{ background: "var(--foam)" }}
+        style={{ background: "var(--yellow)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 핸들 */}
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--sand)", margin: "0 auto 20px" }} />
+        <div className="w-10 h-1 rounded-full mx-auto mb-5 opacity-30" style={{ background: "var(--dark)" }} />
 
         {/* 메모 카드 */}
-        <div
-          className="memo-card p-5 mb-5"
-          style={{
-            background: "var(--cream)",
-            borderRadius: 16,
-            border: `1.5px solid var(--sand)`,
-            rotate: "-1deg",
-          }}
-        >
-          <p style={{
-            fontSize: 16, fontWeight: 600,
-            color: "var(--espresso)",
-            lineHeight: 1.6,
-            marginBottom: 12,
-          }}>{memo.text}</p>
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            fontSize: 12, color: "var(--latte)",
-          }}>
-            <span style={{ fontWeight: 700 }}>{memo.nickname}</span>
-            <span>{timeAgo}</span>
-          </div>
-        </div>
+        {(() => {
+          const { bgColor, borderRadius, filter, opacity } = getMemoAgeStyle(memo.created_at);
+          return (
+            <div
+              className="memo-card p-5 mb-5"
+              style={{ background: bgColor, borderRadius, filter, opacity, rotate: "-1deg" }}
+            >
+              <p className="font-medium text-base leading-relaxed mb-3">{memo.text}</p>
+              <div className="flex items-center justify-between text-xs opacity-60">
+                <span>{memo.nickname}</span>
+                <span>{timeAgo}</span>
+              </div>
+            </div>
+          );
+        })()}
 
-        {/* 반응 버튼들 */}
-        <div className="flex items-center gap-3 mb-4">
+        {/* 🔥 반응 + 스크랩 */}
+        <div className="flex items-center gap-3 mb-2">
           <button
+            className="font-display font-bold px-4 py-2 rounded-2xl text-base flex items-center gap-2 transition-transform active:scale-90"
             style={{
-              background: myReactions.has("🔥") ? "var(--espresso)" : "var(--sand)",
-              color: myReactions.has("🔥") ? "var(--cream)" : "var(--latte)",
-              border: "none",
-              borderRadius: 14,
-              padding: "8px 16px",
-              fontSize: 14, fontWeight: 700,
-              display: "flex", alignItems: "center", gap: 6,
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              boxShadow: myReactions.has("🔥") ? "0 4px 12px rgba(74,55,40,0.25)" : "none",
+              background: myReactions.has("🔥") ? "var(--dark)" : "rgba(26,19,6,0.1)",
+              color: myReactions.has("🔥") ? "var(--yellow)" : "var(--dark)",
+              boxShadow: myReactions.has("🔥") ? "0 3px 0 rgba(0,0,0,0.2)" : "none",
             }}
             onClick={() => toggleReaction("🔥")}
           >
             <span>🔥</span>
-            {reactions["🔥"] ? <span>{reactions["🔥"]}</span> : null}
+            {reactions["🔥"] ? <span className="font-black">{reactions["🔥"]}</span> : null}
           </button>
 
           {/* 스크랩 버튼 */}
@@ -247,33 +212,38 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
               onTouchStart={() => setShowScrapTooltip(true)}
               onTouchEnd={() => setTimeout(() => setShowScrapTooltip(false), 2000)}
               style={{
-                background: "var(--sand)",
+                background: "rgba(26,19,6,0.1)",
                 border: "none",
-                borderRadius: 14,
+                borderRadius: 16,
                 padding: "8px 14px",
                 cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 6,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
                 fontSize: 16,
               }}
-            >🔖</button>
+            >
+              🔖
+            </button>
             {showScrapTooltip && (
               <div style={{
                 position: "absolute",
                 bottom: "calc(100% + 8px)",
                 left: "50%",
                 transform: "translateX(-50%)",
-                background: "var(--espresso)",
-                color: "var(--cream)",
+                background: "var(--dark)",
+                color: "var(--yellow)",
                 borderRadius: 10,
                 padding: "7px 12px",
                 fontSize: 11,
                 fontWeight: 700,
                 whiteSpace: "nowrap",
-                boxShadow: "0 4px 16px rgba(74,55,40,0.3)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
                 zIndex: 10,
                 pointerEvents: "none",
               }}>
                 ✨ 멤버십 가입 시 이용 가능해요
+                {/* 말풍선 꼬리 */}
                 <div style={{
                   position: "absolute",
                   top: "100%", left: "50%",
@@ -281,59 +251,47 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
                   width: 0, height: 0,
                   borderLeft: "6px solid transparent",
                   borderRight: "6px solid transparent",
-                  borderTop: "6px solid var(--espresso)",
+                  borderTop: "6px solid var(--dark)",
                 }} />
               </div>
             )}
           </div>
 
           {reactions["🔥"] ? (
-            <span style={{ fontSize: 12, color: "var(--latte)", opacity: 0.7 }}>
+            <span className="text-xs opacity-40" style={{ color: "var(--dark)" }}>
               {reactions["🔥"]}명이 불태웠어요
             </span>
           ) : (
-            <span style={{ fontSize: 12, color: "var(--latte)", opacity: 0.5 }}>첫 번째로 불태워봐요</span>
+            <span className="text-xs opacity-30" style={{ color: "var(--dark)" }}>첫 번째로 불태워봐요</span>
           )}
         </div>
+        {(memo.fire_count ?? 0) >= 5 && (
+          <p className="text-xs mb-5" style={{ color: "#FF6B35" }}>
+            🔥 열기가 식지 않아 소멸이 연장됩니다 (최대 14일)
+          </p>
+        )}
 
         {/* 답글 목록 */}
         {replies.length > 0 && (
-          <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="mb-4 space-y-2">
             {replies.map((reply) => (
               <div
                 key={reply.id}
-                style={{
-                  background: "var(--cream)",
-                  border: `1px solid var(--sand)`,
-                  borderRadius: 12,
-                  padding: "10px 14px",
-                  fontSize: 13,
-                  color: "var(--espresso)",
-                }}
+                className="px-3 py-2 rounded-xl text-sm"
+                style={{ background: "rgba(26,19,6,0.07)" }}
               >
-                <span style={{ fontWeight: 700, fontSize: 11, color: "var(--latte)", display: "block", marginBottom: 3 }}>
-                  {reply.nickname}
-                </span>
-                <p>{reply.text}</p>
+                <span className="font-bold opacity-70 text-xs">{reply.nickname}</span>
+                <p className="mt-0.5">{reply.text}</p>
               </div>
             ))}
           </div>
         )}
 
         {/* 답글 입력 */}
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex gap-2">
           <input
-            style={{
-              flex: 1,
-              padding: "12px 16px",
-              borderRadius: 14,
-              border: `1.5px solid var(--sand)`,
-              background: "var(--cream)",
-              color: "var(--espresso)",
-              fontSize: 13, fontWeight: 500,
-              outline: "none",
-              fontFamily: "inherit",
-            }}
+            className="flex-1 px-4 py-3 rounded-2xl text-sm font-medium outline-none"
+            style={{ background: "rgba(26,19,6,0.1)", color: "var(--dark)" }}
             placeholder={userId ? "답글 달기... (80자)" : "로그인 후 답글을 달 수 있어요"}
             maxLength={80}
             value={replyText}
@@ -343,19 +301,12 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
             readOnly={!userId}
           />
           <button
-            style={{
-              background: "var(--espresso)",
-              color: "var(--cream)",
-              border: "none",
-              borderRadius: 14,
-              padding: "12px 16px",
-              fontWeight: 800,
-              fontSize: 16,
-              cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(74,55,40,0.25)",
-            }}
+            className="btn-chunky px-4 py-3 rounded-2xl font-display font-black text-sm"
+            style={{ background: "var(--dark)", color: "var(--yellow)" }}
             onClick={submitReply}
-          >↑</button>
+          >
+            ↑
+          </button>
         </div>
         {userId && (
           <label className="flex items-center gap-2 mt-2 cursor-pointer select-none w-fit">
@@ -363,10 +314,9 @@ export function MemoDetailSheet({ memo, userId, userNickname, onClose, timeAgo, 
               type="checkbox"
               checked={isReplyAnonymous}
               onChange={(e) => setIsReplyAnonymous(e.target.checked)}
-              className="w-4 h-4 rounded cursor-pointer"
-              style={{ accentColor: "var(--espresso)" }}
+              className="w-4 h-4 rounded accent-[var(--dark)] cursor-pointer"
             />
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--latte)" }}>익명으로 달기</span>
+            <span className="text-xs font-medium opacity-50" style={{ color: "var(--dark)" }}>익명으로 달기</span>
           </label>
         )}
       </div>
