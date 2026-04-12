@@ -7,9 +7,11 @@ import { getMemoAgeStyle } from "@/lib/utils";
 interface MemoSheetProps {
   onSubmit: (text: string, isAnonymous: boolean) => void;
   onClose: () => void;
+  userPos: { lat: number; lng: number } | null;
+  nickname: string;
 }
 
-export function AddMemoSheet({ onSubmit, onClose }: MemoSheetProps) {
+export function AddMemoSheet({ onSubmit, onClose, userPos, nickname }: MemoSheetProps) {
   const [text, setText] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
 
@@ -19,60 +21,134 @@ export function AddMemoSheet({ onSubmit, onClose }: MemoSheetProps) {
     setText("");
   };
 
+  const displayName = isAnonymous ? "익명" : nickname;
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end"
-      style={{ background: "rgba(0,0,0,0.3)" }}
+      className="fixed inset-0 z-50"
       onClick={onClose}
     >
+      {/* 메모 위치 미리보기 — 지도 중앙에 반투명 포스트잇 */}
+      <div style={{
+        position: "absolute",
+        top: "50%", left: "50%",
+        transform: "translate(-50%, calc(-50% - 21dvh))",
+        pointerEvents: "none",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}>
+        <div style={{
+          background: "rgba(255,242,52,0.72)",
+          backdropFilter: "blur(4px)",
+          WebkitBackdropFilter: "blur(4px)",
+          borderRadius: 14,
+          padding: "12px 16px",
+          width: 180,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
+          border: "1px solid rgba(255,242,52,0.5)",
+        }}>
+          {/* 텍스트 줄 암시 or 실제 입력 미리보기 */}
+          {text.trim() ? (
+            <p style={{
+              fontSize: 13, fontWeight: 600,
+              color: "var(--dark)", lineHeight: 1.45,
+              marginBottom: 8,
+              wordBreak: "break-all",
+            }}>{text.slice(0, 40)}{text.length > 40 ? "…" : ""}</p>
+          ) : (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ height: 3, borderRadius: 2, background: "rgba(26,19,6,0.2)", marginBottom: 5 }} />
+              <div style={{ height: 3, borderRadius: 2, background: "rgba(26,19,6,0.2)", width: "75%", marginBottom: 5 }} />
+              <div style={{ height: 3, borderRadius: 2, background: "rgba(26,19,6,0.2)", width: "50%" }} />
+            </div>
+          )}
+          <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(26,19,6,0.4)" }}>
+            {displayName} · 지금
+          </div>
+        </div>
+        {/* 핀 꼬리 */}
+        <div style={{
+          width: 0, height: 0,
+          borderLeft: "7px solid transparent",
+          borderRight: "7px solid transparent",
+          borderTop: "9px solid rgba(255,242,52,0.72)",
+        }} />
+        {/* 핀 점 */}
+        <div style={{
+          width: 8, height: 8, borderRadius: "50%",
+          background: "rgba(26,19,6,0.35)",
+          marginTop: 2,
+        }} />
+      </div>
+
+      {/* 바텀시트 */}
       <div
-        className="w-full rounded-t-3xl p-6 pb-10"
-        style={{ background: "var(--yellow)" }}
+        style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          background: "white",
+          borderRadius: "20px 20px 0 0",
+          padding: "12px 16px calc(env(safe-area-inset-bottom) + 16px)",
+          boxShadow: "0 -6px 32px rgba(0,0,0,0.15)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-10 h-1 rounded-full mx-auto mb-5 opacity-30" style={{ background: "var(--dark)" }} />
-        <h2 className="font-display font-black text-xl mb-4" style={{ color: "var(--dark)" }}>
-          여기에 메모 남기기 ✏️
-        </h2>
+        {/* 핸들 */}
+        <div style={{ width: 32, height: 3, borderRadius: 2, background: "rgba(0,0,0,0.1)", margin: "0 auto 14px" }} />
 
-        <div className="memo-card p-4 mb-3 rounded-lg" style={{ background: "#FFF9B0" }}>
+        {/* 입력 */}
+        <div style={{
+          background: "#f7f7f7",
+          borderRadius: 14,
+          padding: "12px 14px",
+          marginBottom: 12,
+          border: "1px solid rgba(0,0,0,0.07)",
+        }}>
           <textarea
-            className="w-full bg-transparent outline-none text-sm font-medium resize-none"
-            style={{ color: "var(--dark)", minHeight: "80px" }}
+            style={{
+              width: "100%", background: "transparent",
+              border: "none", outline: "none",
+              fontSize: 15, fontWeight: 500,
+              color: "var(--dark)", resize: "none",
+              fontFamily: "inherit", minHeight: 64,
+              boxSizing: "border-box",
+            }}
             placeholder="짧고 가볍게 남겨봐요 ✨"
             maxLength={100}
             value={text}
             onChange={(e) => setText(e.target.value)}
             autoFocus
           />
-          <div className="text-right text-xs opacity-40">{text.length}/100</div>
+          <div style={{ textAlign: "right", fontSize: 11, color: "rgba(0,0,0,0.25)", fontWeight: 600 }}>
+            {text.length}/100
+          </div>
         </div>
 
-        <p className="text-xs opacity-40 mb-4 text-center" style={{ color: "var(--dark)" }}>
-          메모는 일주일 간 유지됩니다!
-        </p>
-
-        <label className="flex items-center gap-2 mb-4 cursor-pointer select-none w-fit">
-          <input
-            type="checkbox"
-            checked={isAnonymous}
-            onChange={(e) => setIsAnonymous(e.target.checked)}
-            className="w-4 h-4 rounded accent-[var(--dark)] cursor-pointer"
-          />
-          <span className="text-sm font-medium opacity-60" style={{ color: "var(--dark)" }}>익명으로 뿌리기</span>
-        </label>
-
-        <button
-          className="btn-chunky w-full font-display font-black py-4 rounded-2xl text-lg"
-          style={{
-            background: text.trim() ? "var(--dark)" : "rgba(26,19,6,0.2)",
-            color: text.trim() ? "var(--yellow)" : "rgba(26,19,6,0.4)",
-          }}
-          onClick={handleSubmit}
-          disabled={!text.trim()}
-        >
-          뿌리기 🗺️
-        </button>
+        {/* 하단 옵션 + 버튼 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", flex: 1 }}>
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              style={{ accentColor: "var(--dark)", width: 15, height: 15 }}
+            />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(0,0,0,0.4)" }}>익명</span>
+          </label>
+          <button
+            onClick={handleSubmit}
+            disabled={!text.trim()}
+            style={{
+              background: text.trim() ? "var(--dark)" : "rgba(0,0,0,0.1)",
+              color: text.trim() ? "var(--yellow)" : "rgba(0,0,0,0.25)",
+              border: "none", borderRadius: 14,
+              padding: "12px 28px",
+              fontSize: 14, fontWeight: 800,
+              cursor: text.trim() ? "pointer" : "default",
+              transition: "all 0.15s",
+            }}
+          >뿌리기 🗺️</button>
+        </div>
       </div>
     </div>
   );

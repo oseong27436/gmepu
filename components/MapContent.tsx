@@ -576,6 +576,8 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
         <AddMemoSheet
           onSubmit={handleAddMemo}
           onClose={() => setShowAddSheet(false)}
+          userPos={userPos}
+          nickname={profile?.nickname ?? "익명"}
         />
       )}
       {swipeMemos.length > 0 && (
