@@ -209,7 +209,7 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
       <Map
         mapId={MAP_ID}
         defaultCenter={KOREA_CENTER}
-        defaultZoom={15}
+        defaultZoom={17}
         gestureHandling="greedy"
         disableDefaultUI
         scaleControl
