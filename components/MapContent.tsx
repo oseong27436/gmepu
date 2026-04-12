@@ -2,14 +2,13 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
-import { supabase, type GmepuMemo, type GmepuChatRoom, type UserProfile } from "@/lib/supabase";
+import { supabase, type GmepuMemo, type UserProfile } from "@/lib/supabase";
 import { AddMemoSheet, MemoDetailSheet } from "@/components/MemoSheet";
 import { timeAgo, getMemoAgeStyle, reverseGeocode } from "@/lib/utils";
 import { MAP_ID, KOREA_CENTER, MAP_RESTRICTION } from "@/lib/mapConstants";
 import MapHeader from "@/components/MapHeader";
 import MyMemoPanel from "@/components/MyMemoPanel";
 import FriendsPanel from "@/components/FriendsPanel";
-import ChatRoomPanel from "@/components/ChatRoomPanel";
 
 // zoom >= 이 값이면 개별 핀 표시
 const SHOW_PINS_ZOOM = 19;
@@ -87,9 +86,6 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showMyMemos, setShowMyMemos] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
-  const [chatRooms, setChatRooms] = useState<GmepuChatRoom[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<GmepuChatRoom | null>(null);
-  const [chatPanelOpen, setChatPanelOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<"all" | "friends" | "hot">("all");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -115,15 +111,6 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  // 채팅방 로드
-  useEffect(() => {
-    supabase
-      .from("gmepu_chat_rooms")
-      .select("*")
-      .gt("expires_at", new Date().toISOString())
-      .then(({ data }) => { if (data) setChatRooms(data); });
   }, []);
 
   // 현재 위치 추적
@@ -455,27 +442,6 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           );
         })}
 
-        {/* 채팅방 아이콘 마커 */}
-        {chatRooms.map((room) => (
-          <AdvancedMarker
-            key={room.id}
-            position={{ lat: room.lat, lng: room.lng }}
-            onClick={() => { setSelectedRoom(room); setChatPanelOpen(true); }}
-          >
-            <div style={{ position: "relative", cursor: "pointer", filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.35))" }}>
-              <div style={{
-                width: 40, height: 40,
-                background: "var(--dark)",
-                borderRadius: "50% 50% 50% 4px",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--yellow)">
-                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-                </svg>
-              </div>
-            </div>
-          </AdvancedMarker>
-        ))}
       </Map>
 
       <MapHeader
@@ -500,15 +466,6 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           }}
         >
           + 메모 뿌리기
-        </button>
-        {/* 대화방 생성 — 잠금 상태 */}
-        <button
-          className="btn-chunky font-display font-black px-6 py-4 rounded-2xl text-base"
-          style={{ background: "rgba(26,19,6,0.15)", color: "rgba(26,19,6,0.35)", cursor: "not-allowed" }}
-          title="메모를 더 뿌려야 개설할 수 있어요"
-          disabled
-        >
-          🔒 대화방
         </button>
       </div>
       <div className="absolute bottom-8 right-3 flex flex-col gap-2 items-center">
@@ -574,45 +531,6 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
         </button>
       </div>
 
-      {/* 채팅 패널 토글 탭 (패널 닫혀 있을 때) */}
-      {selectedRoom && !chatPanelOpen && (
-        <button
-          onClick={() => setChatPanelOpen(true)}
-          title={selectedRoom.name}
-          style={{
-            position: "fixed",
-            left: 0,
-            top: "50%",
-            transform: "translateY(-50%)",
-            zIndex: 39,
-            background: "var(--dark)",
-            border: "none",
-            cursor: "pointer",
-            borderRadius: "0 12px 12px 0",
-            width: 36,
-            height: 56,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "2px 0 8px rgba(0,0,0,0.25)",
-          }}
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--yellow)">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-          </svg>
-        </button>
-      )}
-
-      {selectedRoom && (
-        <ChatRoomPanel
-          room={selectedRoom}
-          userId={user?.id ?? null}
-          userNickname={profile?.nickname ?? null}
-          isOpen={chatPanelOpen}
-          onClose={() => setChatPanelOpen(false)}
-          onLoginRequired={onLoginRequired}
-        />
-      )}
 
       {showFriends && user && (
         <FriendsPanel
