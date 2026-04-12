@@ -71,8 +71,8 @@ export default function MemoSwipeSheet({
         height: SHEET_HEIGHT,
         zIndex: 50,
         borderRadius: "20px 20px 0 0",
-        background: "var(--dark)",
-        boxShadow: "0 -6px 32px rgba(0,0,0,0.45)",
+        background: "white",
+        boxShadow: "0 -6px 32px rgba(0,0,0,0.18)",
         display: "flex",
         flexDirection: "column",
         padding: "0 0 env(safe-area-inset-bottom)",
@@ -81,7 +81,7 @@ export default function MemoSwipeSheet({
         {/* 핸들 + 인디케이터 + 닫기 */}
         <div style={{ padding: "10px 16px 6px", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
-            <div style={{ width: 32, height: 3, borderRadius: 2, background: "rgba(255,255,255,0.18)" }} />
+            <div style={{ width: 32, height: 3, borderRadius: 2, background: "rgba(0,0,0,0.12)" }} />
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             {/* 인디케이터 도트 */}
@@ -94,28 +94,28 @@ export default function MemoSwipeSheet({
                     width: i === index ? 16 : 5,
                     height: 5,
                     borderRadius: 3,
-                    background: i === index ? "var(--yellow)" : "rgba(255,255,255,0.22)",
+                    background: i === index ? "var(--dark)" : "rgba(0,0,0,0.15)",
                     cursor: "pointer",
                     transition: "all 0.2s ease",
                   }}
                 />
               ))}
               {memos.length > 8 && (
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginLeft: 2 }}>
+                <span style={{ fontSize: 10, color: "rgba(0,0,0,0.3)", marginLeft: 2 }}>
                   +{memos.length - 8}
                 </span>
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 600 }}>
+              <span style={{ fontSize: 11, color: "rgba(0,0,0,0.3)", fontWeight: 600 }}>
                 {index + 1} / {memos.length}
               </span>
               <button
                 onClick={onClose}
                 style={{
-                  background: "rgba(255,255,255,0.1)", border: "none",
+                  background: "rgba(0,0,0,0.07)", border: "none",
                   borderRadius: 7, padding: "3px 10px",
-                  color: "rgba(255,255,255,0.5)", fontSize: 11,
+                  color: "rgba(0,0,0,0.4)", fontSize: 11,
                   fontWeight: 600, cursor: "pointer",
                 }}
               >닫기</button>
@@ -123,8 +123,8 @@ export default function MemoSwipeSheet({
           </div>
         </div>
 
-        {/* 스와이프 카드 */}
-        <div style={{ flex: 1, overflow: "hidden", padding: "0 16px" }}>
+        {/* 스와이프 카드 + 글래스 화살표 */}
+        <div style={{ flex: 1, overflow: "hidden", padding: "0 16px 14px", position: "relative" }}>
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={memo.id}
@@ -157,34 +157,48 @@ export default function MemoSwipeSheet({
               />
             </motion.div>
           </AnimatePresence>
-        </div>
 
-        {/* 좌우 화살표 */}
-        <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "6px 16px 12px",
-          flexShrink: 0,
-        }}>
-          <button
-            onClick={goPrev}
-            disabled={index === 0}
-            style={{
-              background: "rgba(255,255,255,0.08)", border: "none",
-              borderRadius: 10, padding: "8px 18px",
-              color: index === 0 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.7)",
-              fontSize: 16, cursor: index === 0 ? "default" : "pointer",
-            }}
-          >←</button>
-          <button
-            onClick={goNext}
-            disabled={index === memos.length - 1}
-            style={{
-              background: "rgba(255,255,255,0.08)", border: "none",
-              borderRadius: 10, padding: "8px 18px",
-              color: index === memos.length - 1 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.7)",
-              fontSize: 16, cursor: index === memos.length - 1 ? "default" : "pointer",
-            }}
-          >→</button>
+          {/* 왼쪽 글래스 화살표 */}
+          {index > 0 && (
+            <button
+              onClick={goPrev}
+              style={{
+                position: "absolute", left: 24, top: "50%",
+                transform: "translateY(-50%)",
+                width: 36, height: 36,
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.55)",
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
+                border: "1px solid rgba(255,255,255,0.7)",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 16, color: "rgba(0,0,0,0.5)",
+                cursor: "pointer", zIndex: 5,
+              }}
+            >‹</button>
+          )}
+
+          {/* 오른쪽 글래스 화살표 */}
+          {index < memos.length - 1 && (
+            <button
+              onClick={goNext}
+              style={{
+                position: "absolute", right: 24, top: "50%",
+                transform: "translateY(-50%)",
+                width: 36, height: 36,
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.55)",
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
+                border: "1px solid rgba(255,255,255,0.7)",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 16, color: "rgba(0,0,0,0.5)",
+                cursor: "pointer", zIndex: 5,
+              }}
+            >›</button>
+          )}
         </div>
       </div>
 
@@ -386,24 +400,24 @@ function ReplyDrawer({ memo, userId, userNickname, onLoginRequired, onClose }: R
         style={{
           position: "fixed", bottom: "38dvh", left: 0, right: 0,
           zIndex: 60,
-          background: "#222",
+          background: "#f7f7f7",
           borderRadius: "16px 16px 0 0",
           padding: "14px 16px",
           maxHeight: "40dvh",
           overflowY: "auto",
-          boxShadow: "0 -4px 20px rgba(0,0,0,0.4)",
+          boxShadow: "0 -4px 20px rgba(0,0,0,0.15)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(0,0,0,0.5)" }}>
             댓글 {replies.length}개
           </span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 12 }}>닫기</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(0,0,0,0.3)", cursor: "pointer", fontSize: 12 }}>닫기</button>
         </div>
 
         {replies.length === 0 && (
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "12px 0" }}>
+          <p style={{ fontSize: 13, color: "rgba(0,0,0,0.25)", textAlign: "center", padding: "12px 0" }}>
             첫 댓글을 남겨봐요
           </p>
         )}
@@ -411,11 +425,11 @@ function ReplyDrawer({ memo, userId, userNickname, onLoginRequired, onClose }: R
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
           {replies.map((r) => (
             <div key={r.id} style={{
-              background: "rgba(255,255,255,0.07)",
+              background: "white",
               borderRadius: 10, padding: "8px 12px",
-              fontSize: 13, color: "white",
+              fontSize: 13, color: "var(--dark)",
             }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", marginRight: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.35)", marginRight: 6 }}>
                 {r.nickname}
               </span>
               {r.text}
@@ -427,8 +441,8 @@ function ReplyDrawer({ memo, userId, userNickname, onLoginRequired, onClose }: R
           <input
             style={{
               flex: 1, padding: "10px 13px", borderRadius: 10,
-              background: "rgba(255,255,255,0.1)",
-              border: "none", color: "white", fontSize: 13,
+              background: "white",
+              border: "1px solid rgba(0,0,0,0.1)", color: "var(--dark)", fontSize: 13,
               outline: "none", fontFamily: "inherit",
             }}
             placeholder={userId ? "댓글 달기... (80자)" : "로그인 후 댓글을 달 수 있어요"}
@@ -452,7 +466,7 @@ function ReplyDrawer({ memo, userId, userNickname, onLoginRequired, onClose }: R
         {userId && (
           <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", marginTop: 6 }}>
             <input type="checkbox" checked={isAnonymous} onChange={(e) => setIsAnonymous(e.target.checked)} style={{ accentColor: "var(--yellow)" }} />
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600 }}>익명으로 달기</span>
+            <span style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", fontWeight: 600 }}>익명으로 달기</span>
           </label>
         )}
       </motion.div>
