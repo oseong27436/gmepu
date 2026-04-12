@@ -120,15 +120,19 @@ export default function MapHeader({ profile, avatarUrl, onMyMemos, onFriends, on
               style={{
                 padding: "7px 18px",
                 borderRadius: 999,
-                border: "none",
-                background: isActive ? "var(--dark)" : "rgba(255,255,255,0.92)",
+                border: isActive ? "none" : "1px solid rgba(255,255,255,0.45)",
+                background: isActive
+                  ? "rgba(26,19,6,0.82)"
+                  : "rgba(255,255,255,0.22)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
                 color: isActive ? "var(--yellow)" : "var(--dark)",
                 fontWeight: 700,
                 fontSize: 13,
                 fontFamily: "Nunito, Pretendard Variable, sans-serif",
                 boxShadow: isActive
-                  ? "0 2px 8px rgba(0,0,0,0.25)"
-                  : "0 1px 4px rgba(0,0,0,0.12)",
+                  ? "0 2px 12px rgba(0,0,0,0.25)"
+                  : "0 1px 6px rgba(0,0,0,0.08)",
                 cursor: "pointer",
                 transition: "all 0.15s ease",
                 whiteSpace: "nowrap",

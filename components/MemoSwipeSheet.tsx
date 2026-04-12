@@ -71,8 +71,11 @@ export default function MemoSwipeSheet({
         height: SHEET_HEIGHT,
         zIndex: 50,
         borderRadius: "20px 20px 0 0",
-        background: "white",
-        boxShadow: "0 -6px 32px rgba(0,0,0,0.18)",
+        background: "rgba(255,255,255,0.72)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        border: "1px solid rgba(255,255,255,0.5)",
+        boxShadow: "0 -6px 32px rgba(0,0,0,0.14)",
         display: "flex",
         flexDirection: "column",
         padding: "0 0 env(safe-area-inset-bottom)",
@@ -275,7 +278,10 @@ function MemoCard({ memo, userId, onLoginRequired, showReplies, onToggleReplies 
 
   return (
     <div style={{
-      background: "var(--yellow)",
+      background: "rgba(255,242,52,0.6)",
+      backdropFilter: "blur(12px)",
+      WebkitBackdropFilter: "blur(12px)",
+      border: "1px solid rgba(255,242,52,0.45)",
       borderRadius: 14,
       padding: "14px 16px 12px",
       height: "100%",
