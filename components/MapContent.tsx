@@ -585,7 +585,13 @@ export default function MapContent({ user, profile, avatarUrl, onLoginRequired }
           userId={user?.id ?? null}
           userNickname={profile?.nickname ?? null}
           onClose={() => setSwipeMemos([])}
-          onFocusMemo={(memo) => map?.panTo({ lat: memo.lat, lng: memo.lng })}
+          onFocusMemo={(memo) => {
+            if (!map) return;
+            map.panTo({ lat: memo.lat, lng: memo.lng });
+            // 바텀시트(38dvh) 위 가시영역 중앙에 핀이 오도록 아래로 오프셋
+            const offset = Math.round(window.innerHeight * 0.19);
+            map.panBy(0, offset);
+          }}
           onLoginRequired={onLoginRequired}
         />
       )}

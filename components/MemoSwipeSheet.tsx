@@ -5,13 +5,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase, type GmepuMemo, type GmepuReply } from "@/lib/supabase";
 import { timeAgo } from "@/lib/utils";
 
+// 바텀시트 높이 비율 (화면의 38%)
+const SHEET_HEIGHT = "38dvh";
+// 지도 가시 영역(62%) 중앙에 핀이 오도록 오프셋
+const MAP_OFFSET_RATIO = 0.12; // 화면 높이의 12% 위로 올림
+
 interface Props {
-  memos: GmepuMemo[];          // 표시할 메모 목록 (클러스터 or 전체)
-  initialIndex: number;         // 처음 열릴 메모 인덱스
+  memos: GmepuMemo[];
+  initialIndex: number;
   userId: string | null;
   userNickname: string | null;
   onClose: () => void;
-  onFocusMemo: (memo: GmepuMemo) => void; // 스와이프 시 지도 이동
+  onFocusMemo: (memo: GmepuMemo) => void;
   onLoginRequired: () => void;
 }
 
@@ -30,7 +35,6 @@ export default function MemoSwipeSheet({
 
   const memo = memos[index];
 
-  // 인덱스 바뀔 때 지도 이동
   useEffect(() => {
     if (memo) onFocusMemo(memo);
   }, [index]);
@@ -55,81 +59,93 @@ export default function MemoSwipeSheet({
 
   return (
     <>
-      {/* 딤 배경 */}
+      {/* 딤 — 클릭 시 닫기 */}
       <div
-        style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.25)" }}
+        style={{ position: "fixed", inset: 0, zIndex: 40 }}
         onClick={onClose}
       />
 
       {/* 바텀시트 */}
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
+        height: SHEET_HEIGHT,
         zIndex: 50,
-        borderRadius: "24px 24px 0 0",
+        borderRadius: "20px 20px 0 0",
         background: "var(--dark)",
+        boxShadow: "0 -6px 32px rgba(0,0,0,0.45)",
+        display: "flex",
+        flexDirection: "column",
         padding: "0 0 env(safe-area-inset-bottom)",
-        boxShadow: "0 -8px 40px rgba(0,0,0,0.4)",
+        overflow: "hidden",
       }}>
-        {/* 핸들 */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 0" }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.2)" }} />
-        </div>
-
-        {/* 인디케이터 + 닫기 */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "10px 20px 0",
-        }}>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            {memos.map((_, i) => (
-              <div
-                key={i}
-                onClick={() => { setDirection(i > index ? 1 : -1); setIndex(i); setShowReplies(false); }}
-                style={{
-                  width: i === index ? 20 : 6,
-                  height: 6,
-                  borderRadius: 3,
-                  background: i === index ? "var(--yellow)" : "rgba(255,255,255,0.25)",
-                  cursor: "pointer",
-                  transition: "all 0.25s ease",
-                }}
-              />
-            ))}
+        {/* 핸들 + 인디케이터 + 닫기 */}
+        <div style={{ padding: "10px 16px 6px", flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+            <div style={{ width: 32, height: 3, borderRadius: 2, background: "rgba(255,255,255,0.18)" }} />
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "rgba(255,255,255,0.1)", border: "none",
-              borderRadius: 8, padding: "4px 12px",
-              color: "rgba(255,255,255,0.6)", fontSize: 12,
-              fontWeight: 600, cursor: "pointer",
-            }}
-          >닫기</button>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            {/* 인디케이터 도트 */}
+            <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+              {memos.slice(0, 8).map((_, i) => (
+                <div
+                  key={i}
+                  onClick={() => { setDirection(i > index ? 1 : -1); setIndex(i); setShowReplies(false); }}
+                  style={{
+                    width: i === index ? 16 : 5,
+                    height: 5,
+                    borderRadius: 3,
+                    background: i === index ? "var(--yellow)" : "rgba(255,255,255,0.22)",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                />
+              ))}
+              {memos.length > 8 && (
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginLeft: 2 }}>
+                  +{memos.length - 8}
+                </span>
+              )}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 600 }}>
+                {index + 1} / {memos.length}
+              </span>
+              <button
+                onClick={onClose}
+                style={{
+                  background: "rgba(255,255,255,0.1)", border: "none",
+                  borderRadius: 7, padding: "3px 10px",
+                  color: "rgba(255,255,255,0.5)", fontSize: 11,
+                  fontWeight: 600, cursor: "pointer",
+                }}
+              >닫기</button>
+            </div>
+          </div>
         </div>
 
-        {/* 스와이프 카드 영역 */}
-        <div style={{ position: "relative", overflow: "hidden", padding: "12px 20px 0" }}>
+        {/* 스와이프 카드 */}
+        <div style={{ flex: 1, overflow: "hidden", padding: "0 16px" }}>
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={memo.id}
               custom={direction}
               variants={{
-                enter: (d: number) => ({ x: d * 60, opacity: 0 }),
+                enter: (d: number) => ({ x: d * 48, opacity: 0 }),
                 center: { x: 0, opacity: 1 },
-                exit: (d: number) => ({ x: d * -60, opacity: 0 }),
+                exit: (d: number) => ({ x: d * -48, opacity: 0 }),
               }}
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.22, ease: "easeOut" }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.2}
+              dragElastic={0.15}
               onDragEnd={(_, info) => {
-                if (info.offset.x < -50) goNext();
-                else if (info.offset.x > 50) goPrev();
+                if (info.offset.x < -40) goNext();
+                else if (info.offset.x > 40) goPrev();
               }}
-              style={{ cursor: "grab" }}
+              style={{ cursor: "grab", height: "100%" }}
             >
               <MemoCard
                 memo={memo}
@@ -145,45 +161,50 @@ export default function MemoSwipeSheet({
 
         {/* 좌우 화살표 */}
         <div style={{
-          display: "flex", justifyContent: "space-between",
-          padding: "12px 20px 20px",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "6px 16px 12px",
+          flexShrink: 0,
         }}>
           <button
             onClick={goPrev}
             disabled={index === 0}
             style={{
-              background: index === 0 ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.12)",
-              border: "none", borderRadius: 12,
-              padding: "10px 20px",
-              color: index === 0 ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.8)",
-              fontSize: 18, cursor: index === 0 ? "default" : "pointer",
-              transition: "all 0.15s",
+              background: "rgba(255,255,255,0.08)", border: "none",
+              borderRadius: 10, padding: "8px 18px",
+              color: index === 0 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.7)",
+              fontSize: 16, cursor: index === 0 ? "default" : "pointer",
             }}
           >←</button>
-
-          <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, alignSelf: "center" }}>
-            {index + 1} / {memos.length}
-          </span>
-
           <button
             onClick={goNext}
             disabled={index === memos.length - 1}
             style={{
-              background: index === memos.length - 1 ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.12)",
-              border: "none", borderRadius: 12,
-              padding: "10px 20px",
-              color: index === memos.length - 1 ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.8)",
-              fontSize: 18, cursor: index === memos.length - 1 ? "default" : "pointer",
-              transition: "all 0.15s",
+              background: "rgba(255,255,255,0.08)", border: "none",
+              borderRadius: 10, padding: "8px 18px",
+              color: index === memos.length - 1 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.7)",
+              fontSize: 16, cursor: index === memos.length - 1 ? "default" : "pointer",
             }}
           >→</button>
         </div>
       </div>
+
+      {/* 답글 드로어 — 시트 위에 올라옴 */}
+      <AnimatePresence>
+        {showReplies && (
+          <ReplyDrawer
+            memo={memo}
+            userId={userId}
+            userNickname={userNickname}
+            onLoginRequired={onLoginRequired}
+            onClose={() => setShowReplies(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
 
-// ─── 개별 메모 카드 ─────────────────────────────────────────────
+// ─── 메모 카드 ────────────────────────────────────────────────────
 
 interface MemoCardProps {
   memo: GmepuMemo;
@@ -194,19 +215,15 @@ interface MemoCardProps {
   onToggleReplies: () => void;
 }
 
-function MemoCard({ memo, userId, userNickname, onLoginRequired, showReplies, onToggleReplies }: MemoCardProps) {
+function MemoCard({ memo, userId, onLoginRequired, showReplies, onToggleReplies }: MemoCardProps) {
   const [reactions, setReactions] = useState<Record<string, number>>({});
   const [myReactions, setMyReactions] = useState<Set<string>>(new Set());
-  const [replies, setReplies] = useState<GmepuReply[]>([]);
-  const [replyText, setReplyText] = useState("");
-  const [isAnonymous, setIsAnonymous] = useState(false);
-  const [showScrapTooltip, setShowScrapTooltip] = useState(false);
+  const [replyCount, setReplyCount] = useState(0);
 
   useEffect(() => {
     setReactions({});
     setMyReactions(new Set());
-    setReplies([]);
-    setReplyText("");
+    setReplyCount(0);
 
     supabase.from("gmepu_reactions").select("emoji, user_id").eq("memo_id", memo.id)
       .then(({ data }) => {
@@ -221,9 +238,8 @@ function MemoCard({ memo, userId, userNickname, onLoginRequired, showReplies, on
         setMyReactions(mine);
       });
 
-    supabase.from("gmepu_replies").select("*").eq("memo_id", memo.id)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => { if (data) setReplies(data); });
+    supabase.from("gmepu_replies").select("id", { count: "exact" }).eq("memo_id", memo.id)
+      .then(({ count }) => { if (count != null) setReplyCount(count); });
   }, [memo.id, userId]);
 
   const toggleFire = async () => {
@@ -241,6 +257,112 @@ function MemoCard({ memo, userId, userNickname, onLoginRequired, showReplies, on
     }
   };
 
+  const isHot = myReactions.has("🔥");
+
+  return (
+    <div style={{
+      background: "var(--yellow)",
+      borderRadius: 14,
+      padding: "14px 16px 12px",
+      height: "100%",
+      boxSizing: "border-box",
+      display: "flex",
+      flexDirection: "column",
+      userSelect: "none",
+    }}>
+      {/* 메타: 작성자 | 지역 | 시간 */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6,
+        fontSize: 11, fontWeight: 700,
+        color: "rgba(26,19,6,0.45)",
+        marginBottom: 10,
+        flexShrink: 0,
+      }}>
+        <span>{memo.nickname}</span>
+        {(memo.dong || memo.sigungu) && (
+          <>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <span>{memo.dong ?? memo.sigungu}</span>
+          </>
+        )}
+        <span style={{ opacity: 0.4 }}>|</span>
+        <span>{timeAgo(memo.created_at)}</span>
+      </div>
+
+      {/* 메모 본문 */}
+      <p style={{
+        fontSize: 16, fontWeight: 600,
+        color: "var(--dark)",
+        lineHeight: 1.55,
+        flex: 1,
+        overflow: "hidden",
+        display: "-webkit-box",
+        WebkitLineClamp: 3,
+        WebkitBoxOrient: "vertical",
+      }}>{memo.text}</p>
+
+      {/* 하단 버튼들 */}
+      <div style={{
+        display: "flex", gap: 8, alignItems: "center",
+        marginTop: 12, flexShrink: 0,
+      }}>
+        {/* 🔥 */}
+        <motion.button
+          whileTap={{ scale: 0.85 }}
+          onClick={toggleFire}
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            background: isHot ? "var(--dark)" : "rgba(26,19,6,0.1)",
+            border: "none", borderRadius: 10,
+            padding: "7px 12px",
+            color: isHot ? "var(--yellow)" : "rgba(26,19,6,0.6)",
+            fontWeight: 700, fontSize: 13, cursor: "pointer",
+          }}
+        >
+          🔥 <span>{reactions["🔥"] ?? 0}</span>
+        </motion.button>
+
+        {/* 💬 댓글 */}
+        <motion.button
+          whileTap={{ scale: 0.85 }}
+          onClick={onToggleReplies}
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            background: showReplies ? "var(--dark)" : "rgba(26,19,6,0.1)",
+            border: "none", borderRadius: 10,
+            padding: "7px 12px",
+            color: showReplies ? "var(--yellow)" : "rgba(26,19,6,0.6)",
+            fontWeight: 700, fontSize: 13, cursor: "pointer",
+          }}
+        >
+          💬 <span>{replyCount}</span>
+        </motion.button>
+      </div>
+    </div>
+  );
+}
+
+// ─── 답글 드로어 ─────────────────────────────────────────────────
+
+interface ReplyDrawerProps {
+  memo: GmepuMemo;
+  userId: string | null;
+  userNickname: string | null;
+  onLoginRequired: () => void;
+  onClose: () => void;
+}
+
+function ReplyDrawer({ memo, userId, userNickname, onLoginRequired, onClose }: ReplyDrawerProps) {
+  const [replies, setReplies] = useState<GmepuReply[]>([]);
+  const [replyText, setReplyText] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
+
+  useEffect(() => {
+    supabase.from("gmepu_replies").select("*").eq("memo_id", memo.id)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => { if (data) setReplies(data); });
+  }, [memo.id]);
+
   const submitReply = async () => {
     if (!userId || !userNickname) { onLoginRequired(); return; }
     if (!replyText.trim()) return;
@@ -251,184 +373,89 @@ function MemoCard({ memo, userId, userNickname, onLoginRequired, showReplies, on
   };
 
   return (
-    <div>
-      {/* 메모 본문 카드 */}
-      <div style={{
-        background: "var(--yellow)",
-        borderRadius: 16,
-        padding: "20px",
-        marginBottom: 14,
-        userSelect: "none",
-      }}>
-        {/* 위치 태그 */}
-        {(memo.dong || memo.sigungu) && (
-          <div style={{
-            fontSize: 11, fontWeight: 700,
-            color: "rgba(26,19,6,0.5)",
-            marginBottom: 8,
-          }}>
-            📍 {memo.dong ?? memo.sigungu}
-          </div>
+    <>
+      <div
+        style={{ position: "fixed", inset: 0, zIndex: 55 }}
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 40, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        style={{
+          position: "fixed", bottom: "38dvh", left: 0, right: 0,
+          zIndex: 60,
+          background: "#222",
+          borderRadius: "16px 16px 0 0",
+          padding: "14px 16px",
+          maxHeight: "40dvh",
+          overflowY: "auto",
+          boxShadow: "0 -4px 20px rgba(0,0,0,0.4)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>
+            댓글 {replies.length}개
+          </span>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 12 }}>닫기</button>
+        </div>
+
+        {replies.length === 0 && (
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "12px 0" }}>
+            첫 댓글을 남겨봐요
+          </p>
         )}
 
-        <p style={{
-          fontSize: 17, fontWeight: 600,
-          color: "var(--dark)",
-          lineHeight: 1.55,
-          marginBottom: 14,
-          minHeight: 52,
-        }}>{memo.text}</p>
-
-        <div style={{
-          display: "flex", justifyContent: "space-between",
-          fontSize: 12, color: "rgba(26,19,6,0.5)", fontWeight: 600,
-        }}>
-          <span>{memo.nickname}</span>
-          <span>{timeAgo(memo.created_at)}</span>
-        </div>
-      </div>
-
-      {/* 리액션 바 */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
-        {/* 🔥 불태우기 */}
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={toggleFire}
-          style={{
-            display: "flex", alignItems: "center", gap: 6,
-            background: myReactions.has("🔥") ? "var(--yellow)" : "rgba(255,255,255,0.1)",
-            border: "none", borderRadius: 12,
-            padding: "10px 16px",
-            color: myReactions.has("🔥") ? "var(--dark)" : "white",
-            fontWeight: 700, fontSize: 14, cursor: "pointer",
-            transition: "background 0.15s",
-          }}
-        >
-          🔥 {reactions["🔥"] ? <span>{reactions["🔥"]}</span> : <span style={{ opacity: 0.5 }}>0</span>}
-        </motion.button>
-
-        {/* 🔖 스크랩 */}
-        <div style={{ position: "relative" }}>
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            onMouseEnter={() => setShowScrapTooltip(true)}
-            onMouseLeave={() => setShowScrapTooltip(false)}
-            onTouchStart={() => setShowScrapTooltip(true)}
-            onTouchEnd={() => setTimeout(() => setShowScrapTooltip(false), 2000)}
-            style={{
-              background: "rgba(255,255,255,0.1)", border: "none",
-              borderRadius: 12, padding: "10px 14px",
-              fontSize: 16, cursor: "pointer",
-            }}
-          >🔖</motion.button>
-          {showScrapTooltip && (
-            <div style={{
-              position: "absolute", bottom: "calc(100% + 8px)", left: "50%",
-              transform: "translateX(-50%)",
-              background: "white", color: "var(--dark)",
-              borderRadius: 10, padding: "6px 12px",
-              fontSize: 11, fontWeight: 700,
-              whiteSpace: "nowrap", boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
-              zIndex: 10, pointerEvents: "none",
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+          {replies.map((r) => (
+            <div key={r.id} style={{
+              background: "rgba(255,255,255,0.07)",
+              borderRadius: 10, padding: "8px 12px",
+              fontSize: 13, color: "white",
             }}>
-              ✨ 멤버십 가입 시 이용 가능해요
-              <div style={{
-                position: "absolute", top: "100%", left: "50%",
-                transform: "translateX(-50%)",
-                borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
-                borderTop: "6px solid white",
-              }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", marginRight: 6 }}>
+                {r.nickname}
+              </span>
+              {r.text}
             </div>
-          )}
+          ))}
         </div>
 
-        {/* 💬 답글 토글 */}
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={onToggleReplies}
-          style={{
-            display: "flex", alignItems: "center", gap: 6,
-            background: showReplies ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)",
-            border: "none", borderRadius: 12,
-            padding: "10px 16px",
-            color: "white", fontWeight: 700, fontSize: 14, cursor: "pointer",
-            marginLeft: "auto",
-            transition: "background 0.15s",
-          }}
-        >
-          💬 {replies.length > 0 ? replies.length : ""}
-        </motion.button>
-      </div>
-
-      {/* 답글 영역 */}
-      <AnimatePresence>
-        {showReplies && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            style={{ overflow: "hidden" }}
-          >
-            {/* 답글 목록 */}
-            {replies.length > 0 && (
-              <div style={{ marginBottom: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-                {replies.map((r) => (
-                  <div key={r.id} style={{
-                    background: "rgba(255,255,255,0.08)",
-                    borderRadius: 10, padding: "8px 12px",
-                    fontSize: 13, color: "white",
-                  }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", marginRight: 6 }}>
-                      {r.nickname}
-                    </span>
-                    {r.text}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* 답글 입력 */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
-              <input
-                style={{
-                  flex: 1, padding: "11px 14px", borderRadius: 12,
-                  background: "rgba(255,255,255,0.1)",
-                  border: "none", color: "white", fontSize: 13,
-                  outline: "none", fontFamily: "inherit",
-                }}
-                placeholder={userId ? "답글 달기... (80자)" : "로그인 후 답글을 달 수 있어요"}
-                maxLength={80}
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitReply()}
-                onFocus={() => { if (!userId) onLoginRequired(); }}
-                readOnly={!userId}
-              />
-              <button
-                onClick={submitReply}
-                style={{
-                  background: "var(--yellow)", border: "none",
-                  borderRadius: 12, padding: "11px 16px",
-                  fontWeight: 900, fontSize: 16,
-                  color: "var(--dark)", cursor: "pointer",
-                }}
-              >↑</button>
-            </div>
-            {userId && (
-              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", marginBottom: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.checked)}
-                  style={{ accentColor: "var(--yellow)" }}
-                />
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 600 }}>익명으로 달기</span>
-              </label>
-            )}
-          </motion.div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            style={{
+              flex: 1, padding: "10px 13px", borderRadius: 10,
+              background: "rgba(255,255,255,0.1)",
+              border: "none", color: "white", fontSize: 13,
+              outline: "none", fontFamily: "inherit",
+            }}
+            placeholder={userId ? "댓글 달기... (80자)" : "로그인 후 댓글을 달 수 있어요"}
+            maxLength={80}
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitReply()}
+            onFocus={() => { if (!userId) onLoginRequired(); }}
+            readOnly={!userId}
+          />
+          <button
+            onClick={submitReply}
+            style={{
+              background: "var(--yellow)", border: "none",
+              borderRadius: 10, padding: "10px 14px",
+              fontWeight: 900, fontSize: 15,
+              color: "var(--dark)", cursor: "pointer",
+            }}
+          >↑</button>
+        </div>
+        {userId && (
+          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", marginTop: 6 }}>
+            <input type="checkbox" checked={isAnonymous} onChange={(e) => setIsAnonymous(e.target.checked)} style={{ accentColor: "var(--yellow)" }} />
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600 }}>익명으로 달기</span>
+          </label>
         )}
-      </AnimatePresence>
-    </div>
+      </motion.div>
+    </>
   );
 }
