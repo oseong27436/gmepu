@@ -4,6 +4,8 @@
 
 A location-based memo sharing platform where users pin short post-it notes to real-world GPS coordinates, and others nearby can stumble upon them.
 
+🔗 **[Live Demo](https://gmepu.vercel.app)**
+
 ---
 
 ## Features
